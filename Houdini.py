@@ -61,6 +61,9 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self._scene_file = str(hou.hipFile.name())
+        self.parms['scene_file'] = self._scene_file
+        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
 
 
     def __iter__(self):
@@ -124,12 +127,9 @@ class HbatchWrapper(HoudiniNodeWrapper):
         super(HbatchWrapper, self).__init__(index, path, depends, **kwargs)
         use_frame_list = kwargs.get('use_frame_list')
         self.hbatch_slots = kwargs.get('hbatch_slots')
-        scene_file = str(hou.hipFile.name())
 
         self.parms['command'] << {'command' : '$HFS/bin/hython'}
         self.parms['command_arg'] = [kwargs.get('command_arg')]
-        self.parms['scene_file'] = scene_file
-        self.parms['job_name'] = self.generate_unique_job_name(scene_file) + "_" + self.hou_node.name()
         self.parms['req_license'] = 'hbatch_lic=1' 
         self.parms['req_resources'] = 'procslots=%s' % self.hbatch_slots
         self.parms['target_list'] = [str(self.hou_node.path()),]
@@ -138,18 +138,13 @@ class HbatchWrapper(HoudiniNodeWrapper):
         self.parms['end_frame']  = int(self.hou_node.parm('f2').eval())
         self.parms['frame_range_arg'] = ["-f %s %s -i %s", 'start_frame', 'end_frame', int(self.hou_node.parm('f3').eval())]
         self.parms['req_memory'] = kwargs.get('hbatch_ram', 0)
-
         if use_frame_list:
             self.parms['frame_list'] = kwargs.get('frame_list')
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
 
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-
-        ifd_name = self.parms['job_name']
-        self._set_slot("ifd_name", ifd_name)
-        command_arg = ["--ifd_name %s" %  ifd_name, "--ignore_tiles", "--generate_ifds" ]
-
+        command_arg = ["--ifd_name %s" %  self._get_slot('ifd_name'), "--ignore_tiles", "--generate_ifds" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -228,7 +223,7 @@ class HoudiniBaketexture30(HbatchWrapper):
         return self.hou_node.parm('vm_uvoutputpicture1').eval()
 
 
-    
+
 class HoudiniIFDWrapper(HbatchWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -290,21 +285,27 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self._slices = kwargs.get('frames')
         self._indices = map(lambda x: str(uuid4()), self._slices)
         self._indices[0] = index
-        if self._slices != []:
+        if self._slices != [1]:
             frame = self._slices[self._slice_idx]
         ifd_path = kwargs.get('ifd_path')
-        ifd_name = self._get_slot('ifd_name')
+        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
+        ifd_name = self.parms['job_name']
+        self._set_slot("ifd_name", ifd_name)
         self.parms['scene_file'] = os.path.join(ifd_path, ifd_name + '.' + const.TASK_ID + '.ifd')
         self.parms['job_name'] = ifd_name + '_mantra'
-        self._tiles_x, self._tiles_y = 1, 1
+        self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
-        if self._vm_tile_render:
+        if self._tiles_x * self._tiles_y > 1:
+            self._vm_tile_render = True
             self.name += '_tiles'
-            self.parms['tile_x'] = self._tiles_x = self.hou_node.parm('vm_tile_count_x').eval()
-            self.parms['tile_y'] = self._tiles_y = self.hou_node.parm('vm_tile_count_y').eval()
+        elif self._vm_tile_render:
+            self.name += '_tiles'
+            self._tiles_x = self.hou_node.parm('vm_tile_count_x').eval()
+            self._tiles_y = self.hou_node.parm('vm_tile_count_y').eval()
         else:
             self.parms['command'] << { 'mantra_filter': mantra_filter }
-
+        self.parms['tile_x'] = self._tiles_x
+        self.parms['tile_y'] = self._tiles_y
         self.parms['command'] << { 'command' : '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval()) }
         self._root_index = kwargs.get('root_index')
         self.parms['start_frame'] = frame if frame else int(self.hou_node.parm('f1').eval())
@@ -335,7 +336,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
     def post_render_actions(self):
         post_renders = []
 
-        if self._slices != []:
+        if self._slices != [1]:
             self._frames_render()
 
         if self._vm_tile_render == True:
@@ -477,6 +478,10 @@ class HaContextHoudini(object):
         if use_frame_list == True:
             frames = hafarm_node.parm("frame_list").eval()
             frames = utils.parse_frame_list(frames)
+
+        tile_x, tile_y = 1, 1
+        if hafarm_node.parm('tiles').eval() == True:
+            tile_x, tile_y = hafarm_node.parm('tile_x').eval(), hafarm_node.parm('tile_y').eval()
         
         global_parms = dict(
                   max_running_tasks = hafarm_node.parm('max_running_tasks').eval()
@@ -502,6 +507,8 @@ class HaContextHoudini(object):
                 , mantra_ram = hafarm_node.parm("mantra_ram").eval()
                 , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
                 , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
+                , tile_x = tile_x
+                , tile_y = tile_y
             )
         
         clsctx = None
@@ -511,6 +518,11 @@ class HaContextHoudini(object):
         else:
             clsctx = HaContextHoudiniMantra(hafarm_node, global_parms)
         return clsctx._get_graph(**kwargs)
+
+
+    def pre_render(self):
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
 
 
 
