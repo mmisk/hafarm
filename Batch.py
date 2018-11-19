@@ -1,176 +1,151 @@
 import os, sys
+import utils
+import const
+from uuid import uuid4
+from HaGraph import HaGraphItem
+from HaGraph import HaGraphDependency
 
+class BatchBase(HaGraphItem):
 
-# Custom: 
-from hafarm import HaFarm
-from hafarm import utils
-from hafarm import const
-
-
-# For some reason this can't be in its own module for now and we'd like to
-# use it across the board, so I put it here. At some point, we should remove haSGE inheritance
-# making it more like a plugin class. At that point, this problem should be reviewed.
-class BatchFarm(HaFarm):
-    '''Performs arbitrary script on farm. Also encapsulates utility functions for handling usual tasks.
-    like tile merging, dubuging renders etc.'''
-    def __init__(self, job_name='', queue='', command='', command_arg=''):
-        super(BatchFarm, self).__init__()
-        self.parms['queue']          = queue
-        self.parms['command']        = command
-        self.parms['command_arg']    = [command_arg]
-        self.parms['ignore_check']   = True
-        self.parms['slots']          = 1
+    def __init__(self, name, tags, *args, **kwargs):
+        """
+        Kwargs:
+            job_name (str): 
+        """
+        index = str(uuid4())
+        name = name
+        tags = tags
+        path = ''
+        dependencies = []
+        super(BatchBase, self).__init__(index, dependencies, name, path, tags, *args, **kwargs)
+        self.parms['ignore_check'] = True
+        self.parms['slots'] = 1
         self.parms['req_resources'] = ''
-        self.parms['end_frame']     = 1
-        if not job_name:
-            job_name = self.generate_unique_job_name()
-        self.parms['job_name']       = job_name
-
-    def join_tiles(self, filename, start, end, ntiles):
-        '''Creates a command specificly for merging tiled rendering with oiiotool.'''
-
-        # Retrive full frame name (without _tile%i)
-        if const.TILE_ID in filename:
-            base, rest = filename.split(const.TILE_ID)
-            tmp, ext   = os.path.splitext(filename)
-            filename   = base + ext
-        else:
-            base, ext  = os.path.splitext(filename)
-
-        details = utils.padding(filename, format='nuke')
-        base    = os.path.splitext(details[0])[0]
-        base, file = os.path.split(base)
-        base    = os.path.join(base, const.TILES_POSTFIX, file)
-        reads   = [base + const.TILE_ID + '%s' % str(tile) + ext for tile in range(ntiles)]
-
-        # Reads:
-        command = ' '
-        command += '%s ' % reads[0]
-        command += '%s ' % reads[1]
-        command += '--over ' 
-
-        for read in reads[2:]:
-            command += "%s " % read
-            command += '--over ' 
-
-        # Final touch:
-        command += '-o %s ' % details[0]
-        command += '--frames %s-%s ' % (start, end)
-
-        # Additional path for proxy images (to be created from joined tiles)
-        if self.parms['make_proxy']:
-            path, file = os.path.split(details[0])
-            path = os.path.join(path, const.PROXY_POSTFIX)
-
-            # FIXME: It shouldn't be here at all. 
-            if not os.path.isdir(path): 
-                try:
-                    os.mkdir(path)
-                except OSError, why:
-                    return why
-
-            proxy    = os.path.join(path, os.path.splitext(file)[0] + '.jpg')
-            command += '--tocolorspace "sRGB" -ch "R,G,B" -o %s ' % proxy
-
-        self.parms['command_arg'] = [command]
-        self.parms['command']     = const.OIIOTOOL      
         self.parms['start_frame'] = 1
-        self.parms['end_frame']   = 1 
-        return command
+        self.parms['end_frame'] = 1
+        self.parms['job_name'] = kwargs.get('job_name', self._generate_unique_job_name())
 
-    def iinfo_images(self, filename):
-        '''By using iinfo utility inspect filename (usually renders).
-        '''
-        details = utils.padding(filename, 'shell')
-        self.parms['command'] = const.IINFO
-        self.parms['command_arg'] =  ['`ls %s | grep -v "%s" ` | grep File ' % (details[0], const.TILE_ID)]
-        self.parms['start_frame'] = 1
-        self.parms['end_frame']   = 1
-        self.parms['email_stdout'] = True
-
-    def debug_image(self, filename, start=None, end=None):
-        '''By using iinfo utility inspect filename (usually renders).
-        '''
-        # TODO: Need to rethink that
-        job_name = self.parms['job_name'].replace("_debug", "")
-        details = utils.padding(filename)
-
-        # Make place for debug scripts, as usual this shouldn't be here. 
-        # I don't like random scripts making folders in where ever they wish:
-        # Maybe this is a reason for making some-sort-of file handler?
-        path, file = os.path.split(filename)
-        path       = os.path.join(path, const.DEBUG_POSTFIX)
-        if not os.path.isdir(path):
-            try:
-                os.mkdir(path)
-            except OSError, why:
-                return why
-
-        self.parms['scene_file'] =  details[0] + const.TASK_ID_PADDED + details[3]
-        self.parms['command']    = '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % job_name
-        self.parms['frame_padding_length'] = int(details[2])
-        if start and end:
-            self.parms['start_frame'] = start
-            self.parms['end_frame']   = end
-
-        return True
-
-    def to_exr2(self, filename, start=None, end=None):
-        ''' Converts sequence to exr2 with custom script and oiiotool.
-            Note: oiio needs to be in a path (FIXME).
-        '''
-        
-        details = utils.padding(filename)
-
-        path, file = os.path.split(filename)
-        path       = os.path.join(path, "exr2")
-
-        if not os.path.isdir(path):
-            try:
-                os.mkdir(path)
-            except OSError, why:
-                return why
-
-        self.parms['scene_file'] =  details[0] + const.TASK_ID_PADDED + details[3]
-        self.parms['command']    = '/STUDIO/scripts/img2exr2'
-	self.parms['slots']      = 4
-	self.parms['queue']      = 'nuke'
-        self.parms['frame_padding_length'] = int(details[2])
-        if start and end:
-            self.parms['start_frame'] = start
-            self.parms['end_frame']   = end
-
-        return True       
-
-    def merge_reports(self, filename, ifd_path=None, send_email=True, mad_threshold=5.0, resend_frames=False):
-        ''' Merges previously generated debug reports per frame, and do various things
-            with that, send_emials, save on dist as json/html etc.
-        '''
-        # 
-        send_email    = '--send_email' # ON BY DEFAULT if send_email else ""
-        ifd_path      = '--ifd_path %s' % ifd_path if ifd_path else ""
-        resend_frames = '--resend_frames' if resend_frames else ""
-        # 
-        path, filename = os.path.split(filename)
-        details  = utils.padding(filename, 'shell')
-        log_path = os.path.join(path, const.DEBUG_POSTFIX)
-        self.parms['scene_file'] =  os.path.join(log_path, details[0]) + '.json'
-        self.parms['command']    = '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email, ifd_path, resend_frames, mad_threshold)
-        self.parms['start_frame'] = 1
-        self.parms['end_frame']   = 1
+    def _generate_unique_job_name(self, name = 'no_name_job'):
+        """Returns unique name for a job. 'Name' is usually a scene file. 
+        """
+        from base64 import urlsafe_b64encode
+        name = os.path.basename(name)
+        return '_'.join([os.path.split(name)[1], urlsafe_b64encode(os.urandom(3))])
 
 
-    def make_movie(self, filename):
-        '''Make a movie from custom files. 
-        '''
-        # Input filename with proxy correction:
-        details = utils.padding(filename, 'nuke')
-        base, file = os.path.split(details[0])
-        file, ext  = os.path.splitext(file)
-        inputfile  = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
+class BatchMp4(BatchBase):
+
+    def __init__(self, filename, *args, **kwargs):
+        name = 'ffmpeg'
+        tags = '/hafarm/ffmpeg'
+        super(BatchMp4, self).__init__(name, tags, *args, **kwargs)
+        scene_file_path, _, _, _ = utils.padding(filename, 'nuke')
+        base, file = os.path.split(scene_file_path)
+        file, _ = os.path.splitext(file)
+        inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
-        command = "-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s" % (inputfile, outputfile)
-        self.parms['command'] = 'ffmpeg '
-        self.parms['command_arg'] = [command]
-        self.parms['start_frame'] = 1
-        self.parms['end_frame']   = 1
+        self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+        self.parms['command'] << {'command': 'ffmpeg '}
+
+
+class BatchDebug(BatchBase):
+
+    def __init__(self, filename, *args, **kwargs):
+        """
+        Args:
+            filename (str): 
+        Kwargs:
+            start (int): 
+            end (int):
+        """
+        name = 'debug_images.py'
+        tags = '/hafarm/debug_images'
+        super(BatchDebug, self).__init__(name, tags, *args, **kwargs)
+        self.parms['command_arg'] = ['']
+        self.parms['start_frame'] = kwargs.get('start', 1)
+        self.parms['end_frame'] = kwargs.get('end', 1)
+        scene_file_path, _, frame_padding_length, ext = utils.padding(filename)
+        path, file = os.path.split(filename)
+        path = os.path.join(path, const.DEBUG_POSTFIX)
+        if not os.path.isdir(path):
+            try:
+                os.mkdir(path)
+            except OSError as why:
+                print why
+
+        self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
+        self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
+        self.parms['frame_padding_length'] = int(frame_padding_length)
+
+
+class BatchReportsMerger(BatchBase):
+    """ Merges previously generated debug reports per frame, and do various things
+        with that, send_emials, save on dist as json/html etc.
+    """
+
+    def __init__(self, filename, *args, **kwargs):
+        """
+        Args:
+            filename (str): 
+        Kwargs:
+            resend_frames (bool): Current state to be in.
+            ifd_path
+            mad_threshold (float):
+        """
+        name = 'generate_render_report.py'
+        tags = '/hafarm/generate_render_report'
+        super(BatchReportsMerger, self).__init__(name, tags, *args, **kwargs)
+        resend_frames = kwargs.get('resend_frames', False)
+        ifd_path = kwargs.get('ifd_path')
+        mad_threshold = kwargs.get('mad_threshold', 5.0)
+        send_email = '--send_email'
+        ifd_path = '--ifd_path %s' % ifd_path if ifd_path else ''
+        resend_frames = '--resend_frames' if resend_frames else ''
+        path, filename = os.path.split(filename)
+        scene_file_path, _, _, _ = utils.padding(filename, 'shell')
+        log_path = os.path.join(path, const.DEBUG_POSTFIX)
+        self.parms['scene_file'] = os.path.join(log_path, scene_file_path) + '.json'
+        self.parms['command'] << {'command': '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email,
+                     ifd_path,
+                     resend_frames,
+                     mad_threshold)}
+
+
+class BatchJoinTiles(BatchBase):
+    """Creates a command specificly for merging tiled rendering with oiiotool."""
+
+    def __init__(self, filename, tiles_x, tiles_y, mask_filename, priority, *args, **kwargs):
+        """
+        Args:
+            filename (str):
+            tiles_x (int):
+            tiles_y (int):
+        Kwargs:
+            start (int): 
+            end (int): 
+            make_proxy (bool):
+        """
+        name = 'merge_tiles.py'
+        tags = '/hafarm/merge_tiles'
+        super(BatchJoinTiles, self).__init__(name, tags, *args, **kwargs)
+        self.parms['output_picture'] = filename
+        self.parms['scene_file'] = mask_filename
+        self.parms['priority'] = priority
+        self.parms['slots'] = 0
+        self.parms['start_frame'] = kwargs.get('start',1)
+        self.parms['end_frame'] = kwargs.get('end',1)
+        self.parms['make_proxy'] = kwargs.get('make_proxy', False)
+        start = kwargs.get('start', 1)
+        end = kwargs.get('end', 1)
+        
+        self.parms['command_arg'] = [
+                                        '-x %s' % tiles_x 
+                                        ,'-y %s' % tiles_y 
+                                        ,'-f %s' % const.TASK_ID 
+                                        ,'-o %s' % filename
+                                        ,'-m %s' % mask_filename
+                                ]
+                                
+        self.parms['command'] << {'command': 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py' }
+
+

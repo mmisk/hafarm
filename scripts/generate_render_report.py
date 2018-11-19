@@ -390,7 +390,7 @@ def get_render_stats(job_name):
     Retrives render statistics from render manager.
     """
     import hafarm
-    farm = hafarm.HaFarm()
+    raise Exception('Not implemented yet')
     return farm.get_job_stats(job_name)
 
 def find_last_jobScript(db, pattern='*_mantra.json'):
@@ -476,7 +476,7 @@ def resend_frames_on_farm(db):
     mantra_list    = []
     debuger_list   = []
     actions        = []
-
+    raise Exception('Not implemented yet')
     print 'Waring! Attempt to rerender following frames: ', sequence_list
     for seq in sequence_list:
         redebug = True

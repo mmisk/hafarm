@@ -1,0 +1,63 @@
+{
+  "class_name": "MantraFarm", 
+  "inputs": [
+    "untitled.hip_homr_grid"
+  ], 
+  "parms": {
+    "req_resources": "procslots=0", 
+    "log_path": "$JOB/render/sungrid/log", 
+    "cpu_share": 1.0, 
+    "frame_list": "", 
+    "rerun_on_error": true, 
+    "include_list": [], 
+    "job_asset_type": "user", 
+    "frame_padding_length": 4, 
+    "slots": 0, 
+    "max_running_tasks": 50, 
+    "req_tmpdir": 32, 
+    "exclude_list": [], 
+    "group": "renders", 
+    "req_memory": 0, 
+    "hold_jid_ad": [
+      "untitled.hip_homr_grid"
+    ], 
+    "post_render_script": "", 
+    "hold_jid": [], 
+    "command_arg": [], 
+    "step_frame": 1, 
+    "req_start_time": 0.0, 
+    "priority": -500, 
+    "make_proxy": false, 
+    "email_stderr": false, 
+    "job_name": "untitled.hip_homr_grid_mantra", 
+    "email_stdout": false, 
+    "start_frame": 1, 
+    "email_list": [
+      "s.nazarenko@human-ark.com"
+    ], 
+    "target_list": [], 
+    "layer_list": [], 
+    "user": "snazarenko", 
+    "submission_time": 1540391339.931516, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/untitled.hip_homr_grid.@TASK_ID/>.ifd", 
+    "ignore_check": false, 
+    "job_current": "sandbox", 
+    "req_license": "mantra_lic=1", 
+    "job_asset_name": "snazarenko", 
+    "end_frame": 240, 
+    "queue": "3d", 
+    "output_picture": "/home/snazarenko/render/untitled.grid.0001.exr", 
+    "command": "$HFS/bin/mantra -P \"/home/snazarenko/packages/hafarm/1.0.0/platform-linux/arch-x86_64/os-CentOS_Linux-7/hafarm/scripts/houdini/mantraFilterIfd.py \"", 
+    "pre_render_script": "", 
+    "job_on_hold": false, 
+    "email_opt": "", 
+    "script_path": "$JOB/render/sungrid/jobScript", 
+    "frame_range_arg": [
+      "%s%s%s", 
+      "", 
+      "", 
+      ""
+    ]
+  }, 
+  "backend_name": "Slurm"
+}

@@ -27,6 +27,7 @@ def parseOptions():
     parser.add_option("", "--save_scene", dest='save_scene', action='store',  type="string", default="", help="Saves modified version of a scene mostly for debugging purposes.")
     parser.add_option("", "--idle", dest='idle', action='store_true', default=False, help="Run the script, but don't render anything.")
     parser.add_option("", "--scratch", dest='scratch', action='store', default="/SCRATCH/temp", help="Default location for storing temp render data per job.")
+    parser.add_option("", "--ifd_name", dest='ifd_name', action='store', default=None, help="Overwrites default IFD path.")
     
     (opts, args) = parser.parse_args(sys.argv[1:])
     (opts, args) = parser.parse_args(sys.argv[1:])
@@ -178,6 +179,23 @@ def main():
         scene_name, ext = os.path.splitext(scene_name)
         ifd_name = os.path.join(options.ifd_path, scene_name + ".$F.ifd")
         driver.parm('soho_diskfile').set(ifd_name)
+
+        if options.ifd_name:
+            ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.ifd")
+            driver.parm('soho_diskfile').set(ifd_name)
+    
+    #Redshift pass:
+    if driver.type().name() == 'Redshift_ROP' and options.generate_ifds:
+        driver.parm("RS_archive_enable").set(1)
+        scene_path, scene_name = os.path.split(hou.hipFile.name())
+        scene_name, ext = os.path.splitext(scene_name)
+        # (should we use scratch or ifd_path for rs?)
+        rs_name = os.path.join(options.ifd_path, scene_name + ".$F.rs")
+        driver.parm('RS_archive_file').set(rs_name)
+
+        if options.ifd_name:
+            ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.rs")
+            driver.parm('RS_archive_file').set(ifd_name)
 
     # vectorize exports:
     if options.vectorize_export and not HAFARM_DISABLE_VECTORIZE_EXPORT:

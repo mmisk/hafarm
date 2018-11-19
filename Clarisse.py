@@ -2,22 +2,28 @@
 import os, sys
 
 # Custom: 
-import hafarm
+from uuid import uuid4
+import utils
+from HaGraph import HaGraph
+from HaGraph import HaGraphItem
+from hafarm import GraphvizRender
+from hafarm import SlurmRender
 
 # Host specific:
 import ix
 
 
-class ClarisseFarm(hafarm.HaFarm):
-    def __init__(self, **kwargs):
+class ClarisseWrapper(HaGraphItem):
+    def __init__(self, clarisse_image, render_archive, *args, **kwargs):
+        index, name = str(uuid4()), 'clarisse'
+        tags, path = '/clarisse/farm', ''
+        dependencies = []
+        super(ClarisseWrapper, self).__init__(index, dependencies, name, path, tags, *args, **kwargs)
         # Note: Force non-default version of backend support class.
-        super(ClarisseFarm, self).__init__( **kwargs)
-        self.parms['command']     = '$CLARISSE_HOME/crender'
+        self.parms['command'] << { 'command': '$CLARISSE_HOME/crender' }
         # NOTE: SCENE_FILE has to be first in a row
-        self.parms['command_arg'] = ['@SCENE_FILE/>', '-startup_script', '$HAFARM_HOME/scripts/clarisse/123.py']
-        self.parms['output_picture'] = ""
-        self.parms['req_license']    = 'clarisse_lic=1' 
-        self.parms['req_resources']  = ''
+        self.parms['req_license'] = 'clarisse_lic=1' 
+        self.parms['req_resources'] = ''
         self.parms['job_on_hold'] = False
         self.parms['queue'] = '3d'
         self.parms['group'] = ''
@@ -26,34 +32,34 @@ class ClarisseFarm(hafarm.HaFarm):
         self.parms['pre_render_script'] = 'clarisse_temp_dir=`mktemp -d --tmpdir=/tmp`; \
         export CLARISSE_TEMP_DIR=$clarisse_temp_dir;\n echo Making Clarisse own tmp place in $clarisse_temp_dir '
         self.parms['post_render_script'] = 'echo Deleting Clarisse tmp: $clarisse_temp_dir; rm -rf $CLARISSE_TEMP_DIR;'
-
-
-    def pre_schedule(self):
-        """This method is called automatically before job submission by HaFarm.
-            Up to now:
-            1) All information should be aquired from host application.
-            2) They should be placed in HaFarmParms class (self.parms).
-            3) Scene should be ready to be copied to handoff location.
-            
-            Main purpose is to prepare anything specific that HaFarm might not know about, 
-            like renderer command and arguments used to render on farm.
-        """
-        # TODO: copy_scene_file should be host specific.
-        result  = self.copy_scene_file()
-
         command = self.parms['command_arg']
-
+        self.parms['target_list'] = [clarisse_image.get_full_name()]
+        self.parms['priority'] = 0
+        self.parms['job_on_hold'] = False
         # Scene file.
         # command += ['@SCENE_FILE/>']
-        
+        self.parms['scene_file'] = render_archive
         # Add camera option to commanline:
-        camera  = self.parms['target_list']
-        command += [' -image %s ' % camera[0]]
+        camera = self.parms['target_list']
+        
+        self.parms['command_arg'] = ['@SCENE_FILE/>'
+                    , '-startup_script'
+                    , '$HAFARM_HOME/scripts/clarisse/123.py'
+                    , ' -image %s ' % camera[0] ]
+        # target image to render:
+        picture_path = clarisse_image.m_object.get_attribute("save_as").get_string()
+        format_idx   = int(clarisse_image.m_object.get_attribute("format").get_double())
+        self.parms['output_picture'] = picture_path + "00001" +  CLARISSE_FORMATS[format_idx]
 
-        self.parms['command_arg'] = command
+        # name, frame range per Clarisse image:
+        _, job_name  = os.path.split(render_archive)
+        self.parms['job_name']    = self.generate_unique_job_name(job_name) + "_" + clarisse_image.get_name()
+        self.parms['start_frame'] = int(clarisse_image.m_object.get_attribute("first_frame").get_string())
+        self.parms['end_frame']   = int(clarisse_image.m_object.get_attribute("last_frame").get_string())
+        # Get rid of frames = 0
+        if self.parms['start_frame'] < 1: 
+            self.parms['start_frame'] = 1
 
-        # Any debugging info [object, outout]:
-        return []
 
 
 
@@ -75,30 +81,14 @@ class RenderButton(ix.api.GuiPushButton):
         '''
         render_archive  = self.parent.parms['render_archive']
         selected_images = self.parent.parms['selected_images']
-        path, job_name  = os.path.split(render_archive)
+
+        graph = HaGraph()
+        graph.set_render(SlurmRender.SlurmRender)
 
         for image in selected_images:
-            farm = ClarisseFarm()
-            farm.parms['priority']    = 0
-            farm.parms['job_on_hold'] = False
-            farm.parms['scene_file']  = str(render_archive) 
-            farm.parms['target_list'] = [image.get_full_name()]
+            graph.add_node( ClarisseWrapper( image, str(render_archive) )  )
 
-            # target image to render:
-            picture_path = image.m_object.get_attribute("save_as").get_string()
-            format_idx   = int(image.m_object.get_attribute("format").get_double())
-            farm.parms['output_picture'] = picture_path + "00001" +  CLARISSE_FORMATS[format_idx]
-
-            # name, frame range per Clarisse image:
-            farm.parms['job_name']    = farm.generate_unique_job_name(job_name) + "_" + image.get_name()
-            farm.parms['start_frame'] = int(image.m_object.get_attribute("first_frame").get_string())
-            farm.parms['end_frame']   = int(image.m_object.get_attribute("last_frame").get_string())
-
-            # Get rid of frames = 0
-            if farm.parms['start_frame'] < 1: 
-                farm.parms['start_frame'] = 1
-
-            farm.render()
+        graph.render()
 
         self.set_label('Render sent!')
 
