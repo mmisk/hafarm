@@ -123,8 +123,8 @@ class HaGraphItem(object):
         self._slots[name] = val
 
 
-    def _get_slot(self, name):
-        return self._slots.get(name)
+    def _get_slot(self, name, default=""):
+        return self._slots.get(name, default)
 
 
     def __repr__(self):
