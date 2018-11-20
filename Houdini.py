@@ -165,7 +165,9 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
         self.parms['job_name'] += "_generate_rs"
-    
+        self._set_slot("ifd_name", kwargs.get('ifd_name'))
+
+
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
 
@@ -180,14 +182,15 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram', 0)
-        ifd_name = kwargs.get('ifd_name', self._get_slot('ifd_name'))
-        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], ifd_name + '.' + const.TASK_ID + '.rs')
+        self.ifd_name = kwargs.get('ifd_name', self._get_slot('ifd_name'))
+        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        self.parms['job_name'] = ifd_name + "_redshift"
+        self.parms['job_name'] = self.ifd_name + "_redshift"
 
 
     def __iter__(self):
         self._new_index = str(uuid4())
+        self._kwargs['ifd_name'] = self.ifd_name
         self.get_dependencies = lambda : [self._new_index]
         if self._slice_idx == 0:
             ret = HoudiniRSWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
