@@ -1,7 +1,7 @@
 #!/bin/bash  
 #SBATCH --array={{ start_frame }}-{{ end_frame }}:{{ step_frame }}
 #SBATCH --nice={{ priority }}
-#SBATCH -N 4-16
+#SBATCH -N {{ tile_x }}-{{ tile_x * tile_y }}
 #SBATCH{% if slots %} -n {{ slots }}{% else %} --exclusive{% endif %}
 {%- if rerun_on_error %}
 #SBATCH --requeue
@@ -9,10 +9,10 @@
 {%- if job_on_hold %}
 #SBATCH -H
 {%- endif %}
-{%- if req_tmpdir %}
+{%- if req_tmpdir > 0 %}
 #SBATCH --tmp={{ req_tmpdir* 1024 }}
 {%- endif %}
-{%- if req_memory %}
+{%- if req_memory > 0 %}
 #SBATCH --mem={{ req_memory* 1024 }}
 {%- endif %}
 {%- if req_license %}

@@ -137,7 +137,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
         self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
         self.parms['end_frame']  = int(self.hou_node.parm('f2').eval())
         self.parms['frame_range_arg'] = ["-f %s %s -i %s", 'start_frame', 'end_frame', int(self.hou_node.parm('f3').eval())]
-        self.parms['req_memory'] = kwargs.get('hbatch_ram', 0)
+        self.parms['req_memory'] = kwargs.get('hbatch_ram')
         if use_frame_list:
             self.parms['frame_list'] = kwargs.get('frame_list')
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
@@ -181,7 +181,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['queue'] = 'cuda' 
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
-        self.parms['req_memory'] = kwargs.get('mantra_ram', 0)
+        self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.ifd_name = kwargs.get('ifd_name', self._get_slot('ifd_name'))
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
@@ -250,7 +250,6 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.name += '_render'
         name_prefix = kwargs.get('name_prefix','')
         threads = kwargs.get('mantra_slots')
-        self.parms['cpu_share'] = kwargs.get('cpu_share', 1.0)
         if self.parms['cpu_share'] != 1.0:
             self.parms['command_arg'] = ['-j', const.MAX_CORES]
         else:
@@ -262,7 +261,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
         self.parms['req_license'] = 'mantra_lic=1'
-        self.parms['req_memory'] = kwargs.get('mantra_ram', 0)
+        self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['start_frame'] = kwargs.get('start_frame', 0)
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
 
@@ -330,7 +329,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             ret = HoudiniIFDWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
             self._instances += [ret]
             yield ret
-        
+
         for x in super(HoudiniMantraWrapper, self).__iter__():
             yield x
 
@@ -466,8 +465,7 @@ class HaContextHoudini(object):
         hafarm_node = hou.pwd()
         if hafarm_node.type().name() != 'HaFarm':
             raise Exception('Please, select the HaFarm node.')
-        delay = hafarm_node.parm('delay').eval()
-        cpu_share = hafarm_node.parm("cpu_share").eval()
+
         use_frame_list = hafarm_node.parm("use_frame_list").eval()
         frames = [1]
         if use_frame_list == True:
@@ -479,19 +477,17 @@ class HaContextHoudini(object):
             tile_x, tile_y = hafarm_node.parm('tile_x').eval(), hafarm_node.parm('tile_y').eval()
         
         global_parms = dict(
-                  max_running_tasks = hafarm_node.parm('max_running_tasks').eval()
-                , queue = str(hafarm_node.parm('queue').eval())
+                  queue = str(hafarm_node.parm('queue').eval())
                 , group = str(hafarm_node.parm('group').eval())
                 , job_on_hold = bool(hafarm_node.parm('job_on_hold').eval())
                 , priority = int(hafarm_node.parm('priority').eval())
                 , ignore_check = True if hafarm_node.parm("ignore_check").eval() else False
                 , email_list  = [utils.get_email_address()] #+ list(hafarm_node.parm('additional_emails').eval().split()) if hafarm_node.parm("add_address").eval() else []
                 , email_opt  = str(hafarm_node.parm('email_opt').eval())
-                , req_start_time = delay*3600
+                , req_start_time = hafarm_node.parm('delay').eval()*3600
                 , frame_range_arg = ["%s%s%s", '', '', '']
                 , resend_frames = hafarm_node.parm('rerun_bad_frames').eval()
                 , step_frame = hafarm_node.parm('step_frame').eval()
-                , mantra_slots = int(hafarm_node.parm('mantra_slots').eval())
                 , ifd_path = hafarm_node.parm("ifd_path").eval()
                 , frames = frames
                 , use_frame_list = use_frame_list
@@ -499,12 +495,28 @@ class HaContextHoudini(object):
                 , make_movie = hafarm_node.parm("make_movie").eval()
                 , debug_images = hafarm_node.parm("debug_images").eval()
                 , mantra_filter = hafarm_node.parm("ifd_filter").eval()
-                , mantra_ram = hafarm_node.parm("mantra_ram").eval()
-                , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
-                , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
                 , tile_x = tile_x
                 , tile_y = tile_y
+                , cpu_share = hafarm_node.parm("cpu_share").eval()
+                , max_running_tasks = const.hafarm_defaults['max_running_tasks']
+                , mantra_slots = const.hafarm_defaults['slots']
+                , mantra_ram = const.hafarm_defaults['req_memory']
+                , hbatch_slots = const.hafarm_defaults['slots']
+                , hbatch_ram = const.hafarm_defaults['req_memory']
             )
+
+        task_control = {}
+
+        if hafarm_node.parm('more').eval() == True:
+            task_control = dict(
+                      max_running_tasks = hafarm_node.parm('max_running_tasks').eval()
+                    , mantra_slots = int(hafarm_node.parm('mantra_slots').eval())
+                    , mantra_ram = hafarm_node.parm("mantra_ram").eval()
+                    , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
+                    , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
+                )
+
+        global_parms.update(task_control)
         
         clsctx = None
         render_from_ifd = hafarm_node.parm("render_from_ifd").eval()

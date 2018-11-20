@@ -12,10 +12,10 @@
 {%- if job_on_hold %}
 #SBATCH -H
 {%- endif %}
-{%- if req_tmpdir %}
+{%- if req_tmpdir > 0 %}
 #SBATCH --tmp={{ req_tmpdir* 1024 }}
 {%- endif %}
-{%- if req_memory %}
+{%- if req_memory > 0 %}
 #SBATCH --mem={{ req_memory* 1024 }}
 {%- endif %}
 {%- if req_license %}
