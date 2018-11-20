@@ -237,6 +237,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         return self.hou_node.parm('vm_picture').eval()
 
 
+
 class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -297,8 +298,8 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
         if self._tiles_x * self._tiles_y > 1:
-            self._vm_tile_render = True
             self.name += '_tiles'
+            self._vm_tile_render = True
         elif self._vm_tile_render:
             self.name += '_tiles'
             self._tiles_x = self.hou_node.parm('vm_tile_count_x').eval()
@@ -326,7 +327,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             ret = HoudiniIFDWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
             self._instances += [ret]
             yield ret
-
+        
         for x in super(HoudiniMantraWrapper, self).__iter__():
             yield x
 
