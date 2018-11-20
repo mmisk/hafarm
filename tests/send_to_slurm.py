@@ -24,7 +24,7 @@ graph = HaGraph.HaGraph()
 graph.add_node(item1)
 graph.add_node(item2)
 
-graph.set_render(GraphvizRender.GraphvizRender)
+#graph.set_render(GraphvizRender.GraphvizRender)
 graph.set_render(SlurmRender.SlurmRender)
 graph.render()
 
