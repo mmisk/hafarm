@@ -67,12 +67,7 @@ class BatchDebug(BatchBase):
         scene_file_path, _, frame_padding_length, ext = utils.padding(filename)
         path, file = os.path.split(filename)
         path = os.path.join(path, const.DEBUG_POSTFIX)
-        if not os.path.isdir(path):
-            try:
-                os.mkdir(path)
-            except OSError as why:
-                print why
-
+        self.parms['pre_render_script'] = 'mkdir -p %s' % path
         self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
         self.parms['frame_padding_length'] = int(frame_padding_length)
