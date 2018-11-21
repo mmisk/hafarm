@@ -62,6 +62,6 @@ exit_code=0
 
 echo Job ends: `date`
 echo Render target: "{{ output_picture }}"
-echo Commands was: "{{ command }} -t count={{ tile_x }}x{{ tile_y }},index=${tile},suffix={{ tile_suffix }} {{ command_arg|join(' ') }} {{ scene_file }} {{ output_picture }}"
+echo Commands was: "{{ command }} -t count={{ tile_x }}x{{ tile_y }},index=${tile} {{ command_arg|join(' ') }} {{ scene_file }} {{ output_picture }}"
 
 exit $exit_code
