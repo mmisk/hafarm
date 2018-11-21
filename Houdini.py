@@ -1,639 +1,592 @@
 # Standard:
+import re
 import os
 import itertools
 import time
-
+import glob
 # Host specific:
 import hou
 
 # Custom: 
-import hafarm
-
+import utils
+import const
 import Batch
-from hafarm import utils
-from hafarm import const
-from Batch import BatchFarm
-from hafarm import NullAction
-from hafarm import RootAction
+from Batch import BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
 
-# Jobs multi-tasking are always diabled for these nodes:
-SINGLE_TASK_NODES = ('alembic', 'mdd', 'channel', 'dop', 'filmboxfbx')
-MULTI_TASK_NODES  = ('ifd', 'geometry', 'comp', 'baketexture', 'baketexture::3.0', 'fetch')
+from uuid import uuid4
 
-class HbatchFarm(hafarm.HaFarm):
-    def __init__(self, node, rop):
-        super(HbatchFarm, self).__init__()
-        # Keep reference to assigned rop
-        self.rop = rop
-        self.node = node
-        # command will be either hscript csh script shipped with Houdini 
-        # or any custom render script (harender atm.)
-        self.parms['command']           = '$HFS/bin/hython'
-        # Max tasks render managet will attempt to aquire at once: 
-        self.parms['max_running_tasks'] = int(self.node.parm('max_running_tasks').eval())
+import HaGraph
+from HaGraph import HaGraph
+from HaGraph import HaGraphItem
 
-        # This is because we do tiling ourselfs:
-        if self.rop.type().name() in ('ifd', "baketexture", 'baketexture::3.0'):
-            self.parms['command_arg'] += ["--ignore_tiles"]
+import parms
+from parms import HaFarmParms
 
-            # This will change Rop setting to save ifd to disk:
-            self.parms['command_arg'] += ["--generate_ifds"]
-            # also within non-default path:
-            if not self.node.parm("ifd_path").isAtDefault():
-                self.parms['command_arg'] += ["--ifd_path %s" % self.node.parm("ifd_path").eval()]
-
-            # Default Mantra imager (doesn't make sense in hbatch cache though)
-            # TODO: Shouln't it be an ifd file instead of the image?
-            # if self.rop.type().name() == 'ifd': # baketexure doesnt have vm_picture
-            # ... but it does have vm_uvoutput*
-            vm_picture = ""
-            if self.rop.parm('vm_picture'):
-                vm_picture = self.rop.parm('vm_picture').eval()
-            else:
-                vm_picture = safe_eval_parm(self.rop, 'vm_uvoutputpicture1')
-            self.parms['output_picture'] = str(vm_picture)
-
-        # 
-        self.parms['scene_file']  = str(hou.hipFile.name())
-        self.parms['job_name']    = self.generate_unique_job_name(self.parms['scene_file'])
-
-        # FIXME "if rop:"" This isn't clear now
-        if rop: 
-            self.parms['job_name']    += "_"
-            self.parms['job_name']    += rop.name()
-
-            # Use single host for everything (for simulation for example)
-            if self.node.parm("use_one_slot").eval() or rop.type().name() in SINGLE_TASK_NODES:
-                self.parms['step_frame']  = int(self.rop.parm('f2').eval())
-            else:
-                self.parms['step_frame']  = int(self.node.parm('step_frame').eval())
-
-        # Requests resurces and licenses (TODO shouldn't we aquire slot here?)
-        self.parms['req_license']   = 'hbatch_lic=1' 
-        self.parms['req_resources'] = 'procslots=%s' % int(self.node.parm('hbatch_slots').eval())
-
-        # Change only for slots != 0:
-        if self.node.parm('hbatch_slots').eval():
-            self.parms['slots'] = self.node.parm('hbatch_slots').eval()
-
-        # Use provided frame list instead of frame range. Hscript needs bellow changes to
-        # make generic path to work with list of frames: 
-        #   a) change step frame to end_frame to discourage render mananger from spliting tasks among hosts
-        #   b) add "-l 1,2,3[4-6,7-12x2]" argument to custom render script.
-        # TODO: This isn't generic approach, it won't transfer to any render manager. 
-        # NOTE:
-        #   Mantra is sent as a series of single task jobs though, so frame list isn't supported per se by
-        #   this class, but rather host specific code. 
-        if self.node.parm("use_frame_list").eval():
-            self.parms['frame_list']  = str(self.node.parm("frame_list").eval())
-            self.parms['step_frame']  = int(self.rop.parm('f2').eval())
-            self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
+houdini_dependencies = {}
 
 
-        # FIXME: this is meaningless, make it more general
-        if self.node.parm("ignore_check").eval():
-            self.parms['ignore_check'] = True
+def get_houdini_render_nodes(hafarm_node_path):
+    hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
+    ret = []
+    for item in hscript_out[0].strip('\n').split('\n'):
+        index, deps, path, frames  = re.match('(\\d+) \\[ ([0-9\\s]+)?\\] ([a-z/0-9A-Z_]+)\\s??([0-9\\s]+)', item).groups()
+        deps = [] if deps == None else deps.split(' ')
+        deps = [str(x) for x in deps if x != '']
+        houdini_dependencies[index] = deps
+        hou_node_type = hou.node(path).type().name()
+        ret += [ (hou_node_type, index, deps, path) ]
+    return ret
 
-        # Notification settings:
+
+
+class HoudiniNodeWrapper(HaGraphItem):
+    def __init__(self, index, path, depends, **kwargs):
+        self._kwargs = kwargs
+        self._slice_idx = kwargs.get('_slice_idx', 0)
+        self.name = path.rsplit('/', 1)[1]
+        super(HoudiniNodeWrapper, self).__init__(index, depends, self.name, path, '')
+        self._make_proxy = kwargs.get('make_proxy', False)
+        self._make_movie = kwargs.get('make_movie', False)
+        self._debug_images = kwargs.get('debug_images', False)
+        self._resend_frames = kwargs.get('resend_frames', False)
+        self.path = path
+        self.hou_node = hou.node(path)
+        self.hou_node_type = self.hou_node.type().name()
+        self.tags = '/houdini/%s' % self.hou_node_type
+        self._slices = [1]
+        self._indices = map(lambda x: str(uuid4()), self._slices)
+        self._indices[0] = index
+        self._instances = kwargs.get('instances', [])
+        self.parms['job_name'] = self.generate_unique_job_name()
+        self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
-        if self.node.parm("add_address").eval():
-            self.parms['email_list'] += list(self.node.parm('additional_emails').eval().split())
-        self.parms['email_opt']   = str(self.node.parm('email_opt').eval())
+        self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self._scene_file = str(hou.hipFile.name())
+        self.parms['scene_file'] = self._scene_file
+        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
 
-        # Queue, groups, frame ranges
-        self.parms['queue']       = str(self.node.parm('queue').eval())
-        self.parms['group']       = str(self.node.parm('group').eval())
-        self.parms['start_frame'] = int(self.rop.parm('f1').eval())
-        self.parms['end_frame']   = int(self.rop.parm('f2').eval())
-        self.parms['frame_range_arg'] = ["-f %s %s -i %s", 'start_frame', 'end_frame',  int(self.rop.parm('f3').eval())]
-        self.parms['target_list'] = [str(self.rop.path()),]
 
-        # job on hold, priority, 
-        self.parms['job_on_hold'] = bool(self.node.parm('job_on_hold').eval())
-        self.parms['priority']    = int(self.node.parm('priority').eval())
+    def __iter__(self):
+        for slice_idx, index in enumerate(self._indices):
+            self._kwargs['_slice_idx'] = slice_idx
+            self._kwargs['instances'] = self._instances
+            x = type(self)(index, self.path, self.get_dependencies(), **self._kwargs)
+            self._instances += [ x ]
+            yield x
 
-        # Request RAM per job:
-        if self.node.parm("hbatch_ram").eval():
-            self.parms['req_memory'] = self.node.parm("hbatch_ram").eval()
 
-        # Requested delay in evaluation time:
-        delay = self.node.parm('delay').eval()
-        if delay != 0:
-            self.parms['req_start_time'] = delay*3600
+    def post_render_actions(self):
+        return []
 
-        # This will overwrite any from above command arguments for harender according to command_arg parm:
-        self.parms['command_arg'].insert(0, str(self.node.parm("command_arg").eval()))
+
+    def get_output_picture(self):
+        return ''
+
+
+    def get_step_frame(self):
+        return  int(self.rop.parm('f2').eval()) if self._kwargs.get('use_one_slot') else self._kwargs.get('step_frame')
+
+
+    def _proxy_post_render(self):
+        post_renders = []
+        self.parms['command'] << {'proxy':' --proxy '}
+
+        if self._make_movie == True:
+            make_movie_action = BatchMp4( self.parms['output_picture']
+                                          , job_name = self.parms['job_name'] + "_mp4")
+            make_movie_action.add(self)
+            post_renders += [ make_movie_action ]
+
+        return post_renders
+
+
+    def _debug_post_render(self):
+        post_renders = []
+
+        debug_render = BatchDebug( self.parms['output_picture']
+                                    , job_name = self.parms['job_name']
+                                    , start = self.parms['start_frame']
+                                    , end = self.parms['end_frame'] )
+        debug_render.add(self)
+        post_renders += [ debug_render ]
+
+        ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
+        
+        merger = BatchReportsMerger( self.parms['output_picture']
+                                        , job_name = self.parms['job_name'] + "_merge"
+                                        , ifd_path = ifd_path
+                                        , resend_frames = self._resend_frames )
+        merger.add(debug_render)
+        post_renders += [ merger ]
+        return post_renders
+
+
+class HbatchWrapper(HoudiniNodeWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HbatchWrapper, self).__init__(index, path, depends, **kwargs)
+        use_frame_list = kwargs.get('use_frame_list')
+        self.hbatch_slots = kwargs.get('hbatch_slots')
+
+        self.parms['command'] << {'command' : '$HFS/bin/hython'}
+        self.parms['command_arg'] = [kwargs.get('command_arg')]
+        self.parms['req_license'] = 'hbatch_lic=1' 
+        self.parms['req_resources'] = 'procslots=%s' % self.hbatch_slots
+        self.parms['target_list'] = [str(self.hou_node.path()),]
+        self.parms['step_frame'] = self.get_step_frame()
+        self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame']  = int(self.hou_node.parm('f2').eval())
+        self.parms['frame_range_arg'] = ["-f %s %s -i %s", 'start_frame', 'end_frame', int(self.hou_node.parm('f3').eval())]
+        self.parms['req_memory'] = kwargs.get('hbatch_ram')
+        if use_frame_list:
+            self.parms['frame_list'] = kwargs.get('frame_list')
+            self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
+            self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
+        ifd_name = kwargs.get('ifd_name')
+        self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
+        command_arg = ["--ifd_name %s" %  ifd_name, "--ignore_tiles", "--generate_ifds" ]
+        if kwargs.get('ifd_path_is_default') == None:
+            command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
+
+        for x in command_arg[::-1]:
+            self.parms['command_arg'].insert(1, x)
 
 
     def pre_schedule(self):
-        """ This method is called automatically before job submission by HaFarm.
-            Up to now:
-            1) All information should be aquired from host application.
-            2) They should be placed in HaFarmParms class (self.parms).
-            3) Scene should be ready to be copied to handoff location.
-            
-            Main purpose is to prepare anything specific that HaFarm might not know about, 
-            like renderer command and arguments used to render on farm.
-        """
-
-
-        #TODO: copy_scene_file should be host specific.:
-        result  = self.copy_scene_file()
-
-        # Command for host application:
-        command = []
-
-        # Threads:
-        if self.parms['slots']:
-            command += ['-j %s' % self.parms['slots']]
-
-        # Render script:
-        command += self.parms['command_arg']
-
-
-        # Add targets:
-        if self.parms['target_list']:
-            command += ['-d %s' % " ".join(self.parms['target_list'])]
-
-        # Save to parms again:
-        self.parms['command_arg'] = command
-
-        # Any debugging info [object, outout]:
-        return []
+        if self.hbatch_slots:
+            self.parms['command_arg'] += ['-j %s' % self.parms['slots']]
 
 
 
+class HoudiniRSWrapper(HbatchWrapper):
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniRSWrapper, self).__init__(index, path, depends, **kwargs)
+        self.name += '_rs'
+        self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
+        self.parms['queue'] = 'cuda'
+        self.parms['job_name'] += "_generate_rs"
+        self._set_slot("ifd_name", kwargs.get('ifd_name'))
 
 
-class MantraFarm(hafarm.HaFarm):
-    def __init__(self, node, rop=None, job_name='', crop_parms=(1,1,0)):
-        super(MantraFarm, self).__init__()
-
-        # Keep reference to assigned rop
-        self.rop = rop
-        self.node = node
-        self.parms['command_arg']    = []
-        self.parms['command']        = '$HFS/bin/mantra'
-
-        # Max tasks render managet will attempt to aquire at once: 
-        self.parms['max_running_tasks'] = int(self.node.parm('max_running_tasks').eval())
-
-        # Mantra jobs' names are either derived from parent job (hscript)
-        # or provided by user (to allow of using ifd names for a job.) 
-        if not job_name:
-                # Fallback generates name from current time:
-                job_name = utils.convert_seconds_to_SGEDate(time.time()) + "_mantra"
-        
-        self.parms['job_name'] = job_name 
-
-        # Tiling support:
-        if crop_parms != (1,1,0):
-            self.parms['job_name']  += "%s%s" % (const.TILE_ID , str(crop_parms[2]))
-
-        self.parms['req_license']    = 'mantra_lic=1' 
-        self.parms['req_resources']  = ''
-        #self.parms['step_frame']      = int(self.node.parm('step_frame').eval())
-
-        # FIXME: this is meaningless, make it more general
-        if self.node.parm("ignore_check").eval():
-            self.parms['ignore_check'] = True
-
-        # Mailing support based on SGE, make it more robust. 
-        self.parms['email_list']   = [utils.get_email_address()]
-        if self.node.parm("add_address").eval():
-            self.parms['email_list'] += list(self.node.parm('additional_emails').eval().split())
-        self.parms['email_opt']   = str(self.node.parm('email_opt').eval())
-
-        # Queue and group details:
-        self.parms['queue']       = str(self.node.parm('queue').eval())
-        self.parms['group']       = str(self.node.parm('group').eval())
-        self.parms['job_on_hold'] = bool(self.node.parm('job_on_hold').eval())
-        self.parms['priority']    = int(self.node.parm('priority').eval())
-
-        # Requested delay in evaluation time:
-        delay = self.node.parm('delay').eval()
-        if delay != 0:
-            self.parms['req_start_time'] = delay*3600
-            
-        # Doesn't make sense for Mantra, but will be expected as usual later on:
-        self.parms['frame_range_arg'] = ["%s%s%s", '', '', ''] 
-        self.parms['req_resources']   = 'procslots=%s' % int(self.node.parm('mantra_slots').eval())
-        self.parms['make_proxy']      = bool(self.node.parm("make_proxy").eval())
-
-        
-        # Bellow needs any node to be connected, which isn't nececery for rendering directly
-        # from ifd files:
-        if rop:
-            # FIXME: job_name is wrong spot to derive ifd name from...
-            # This couldn't be worse, really... :( 
-            # So many wrong decisions/bugs in one place...
-            ifd_name = job_name
-            if job_name.endswith("_mantra"):
-                ifd_name = job_name.replace("_mantra", "")
-            self.parms['scene_file']     = os.path.join(self.node.parm("ifd_path").eval(), ifd_name + '.' + const.TASK_ID + '.ifd')
-            self.parms['command']        = '$HFS/bin/' +  str(self.rop.parm('soho_pipecmd').eval()) 
-            self.parms['start_frame']    = int(self.rop.parm('f1').eval())
-            self.parms['end_frame']      = int(self.rop.parm('f2').eval())
-
-            vm_picture = ""
-            if self.rop.parm('vm_picture'):
-                vm_picture = self.rop.parm('vm_picture').eval()
-            else:
-                vm_picture = safe_eval_parm(self.rop, 'vm_uvoutputpicture1')
-            self.parms['output_picture'] = str(vm_picture)     
-            
-        # Setting != 0 idicates we want to do something about it:
-        if self.node.parm("mantra_slots").eval() != 0 or self.node.parm("cpu_share").eval() != 1.0:
-            threads   = self.node.parm("mantra_slots").eval()
-            cpu_share = self.node.parm('cpu_share').eval()
-            # Note: "-j threads" appears in a command only if mantra doesn't take all of them. 
-            # TODO: Bollow is a try to make autoscaling based on percentange of avaiable cpus.
-            # Needs rethinking...
-            self.parms['slots'] = threads
-            self.parms['cpu_share'] = cpu_share
-            if cpu_share != 1.0:
-                self.parms['command_arg'] += ['-j', const.MAX_CORES]
-            else:
-                self.parms['command_arg'] += ['-j', str(threads)]
-
-        # Request RAM per job:
-        if self.node.parm("mantra_ram").eval():
-            self.parms['req_memory'] = self.node.parm("mantra_ram").eval()
-
-        # Adding Python filtering:
-        # Crop support:
-        python_command = []
-        if crop_parms != (1,1,0):     
-            python_command.append('--tiling %s' % ("%".join([str(x) for x in crop_parms])))
-        # Make proxies (mutually exclusive with crops...)
-        elif self.parms['make_proxy']:
-            python_command.append("--proxy")
-
-        # TODO: Config issues. Should we rely on ROP setting or hafarm defaults?
-        mantra_filter = self.node.parm("ifd_filter").eval()
-        self.parms['command'] += ' -P "%s ' % mantra_filter + " ".join(python_command) + '"'
-        
-
-    def pre_schedule(self):
-        """ This method is called automatically before job submission by HaFarm.
-            Up to now:
-            1) All information should be aquired from host application.
-            2) They should be placed in HaFarmParms class (self.parms).
-            3) Scene should be ready to be copied to handoff location.
-            
-            Main purpose is to prepare anything specific that HaFarm might not know about, 
-            like renderer command and arguments used to render on farm.
-        """
-
-        # In this case, scene_file is IFD for mantra: 
-        # TODO: Cleanup command creation process: we should create full command here
-        # perhaps?
-        self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"] #% self.parm['scene_file']
-
-        # Any debugging info [object, outout]:
-        return []
-
-
-def mantra_render_frame_list(action, frames):
-    """Renders individual frames by sending separately to manager
-    This basically means HaFarm doesn't support any batching of random set of frames
-    so we manage them individually. Unlike hscript exporter (HBachFarm), which does recognize
-    frame_list parameter and via harender script supporting random frames."""
-
-    mantra_frames = []
-    for frame in frames:
-        job_name = action.parms['job_name'] + "_%s" % str(frame)
-        mantra_farm = MantraFarm(action.node, action.rop, job_name=job_name + "_mantra")
-        # Single task job:
-        mantra_farm.parms['start_frame'] = frame
-        mantra_farm.parms['end_frame']   = frame
-        mantra_frames.append(mantra_farm)
-    # frames are dependent on mantra:
-    action.insert_outputs(mantra_frames)
-    return mantra_frames
-
-
-def mantra_render_with_tiles(action):
-    '''Creates a series of Mantra jobs using the same ifds stream with different crop setting 
-    and overwritten filename. Secondly generates merge job with general BatchFarm class for 
-    joining tiles.'''
-    tile_job_ids = []
-    mantra_tiles = []
-    tiles_x = action.rop.parm('vm_tile_count_x').eval()
-    tiles_y = action.rop.parm('vm_tile_count_y').eval()
-
-    parent_job_name = action.parms['job_name']
-    for tile in range(tiles_x*tiles_y):
-        mantra_farm = MantraFarm(action.node, action.rop, job_name = parent_job_name, \
-            crop_parms = (tiles_x,tiles_y,tile))
-        mantra_tiles.append(mantra_farm)
-
-    # Tile merging job:
-    merging_job_name = action.parms['job_name'] + '_merge'
-    merger           = Batch.BatchFarm(job_name = merging_job_name, queue = str(action.node.parm('queue').eval()))
-    merger.node      = action.node # NOTE: Only for debugging purposes, we don't rely on this overwise
-
-    # Need to copy it here, as proxies can be made after tiles merging of course...
-    merger.parms['make_proxy']  = bool(action.node.parm("make_proxy").eval())
-
-    # Queue control
-    merger.parms['output_picture'] = mantra_farm.parms['output_picture'] # This is for house keeping only
-
-    # This prepares commandline to execute:
-    merger.join_tiles(mantra_farm.parms['output_picture'],
-                          mantra_farm.parms['start_frame'],
-                          mantra_farm.parms['end_frame'],
-                          tiles_x*tiles_y)
-
-    action.insert_outputs(mantra_tiles)
-    [tile.insert_output(merger) for tile in mantra_tiles] 
-    # Returns tiles job and merging job. 
-    return mantra_tiles, merger
-
-
-def mantra_render_from_ifd(node, frames, job_name=None):
-    """Separated path for renderig directly from provided ifd files."""
-    import glob
-    mantra_frames = []
-
-    # Params from hafarm node:
-    ifds  = node.parm("ifd_files").eval()
-    start = node.parm("ifd_range1").eval() #TODO make automatic range detection
-    end   = node.parm("ifd_range2").eval() #TODO as above
-
-    # Rediscover ifds:
-    # FIXME: should be simple unexpandedString()
-    seq_details = utils.padding(ifds)
-
-    #job name = ifd file name + current ROP name.
-    if not job_name:
-        job_name = os.path.split(seq_details[0])[1] + "from" + node.name()
-
-    # Find real file sequence on disk. Param could have $F4...
-    real_ifds = glob.glob(seq_details[0] + "*" + seq_details[-1])
-
-    # No ifds found:
-    if not real_ifds: 
-        print "Can't find ifds files: %s" % ifds
-        return []
-
-    if not frames:
-        mantra_farm = MantraFarm(node, '', job_name)
-        mantra_farm.parms['start_frame'] = node.parm("ifd_range1").eval() #TODO make automatic range detection
-        mantra_farm.parms['end_frame']   = node.parm("ifd_range2").eval() #TODO as above
-        mantra_farm.parms['step_frame']  = node.parm("ifd_range3").eval()
-        mantra_farm.parms['scene_file']  = seq_details[0] + const.TASK_ID + '.ifd'
-        mantra_frames.append(mantra_farm)
-
-    # Proceed with farme list:
-    else:
-        for frame in frames:
-            mantra_farm = MantraFarm(node, '', job_name+str(frame))
-            mantra_farm.parms['start_frame']  = frame
-            mantra_farm.parms['end_frame']    = frame
-            mantra_farm.parms['scene_file']  = seq_details[0] + const.TASK_ID + '.ifd'
-            mantra_frames.append(mantra_farm)
-
-
-    # Detect output image. Uses grep ray_image on ifd file:
-    image = utils.get_ray_image_from_ifd(real_ifds[0])
-    for frame in mantra_frames:
-        frame.parms['output_picture'] = image 
-
-    return mantra_frames
+    def get_output_picture(self):
+        return self.hou_node.parm('RS_outputFileNamePrefix').eval()
 
 
 
-def post_render_actions(node, actions, queue='3d'):
-    # Proceed with post-render actions (debug, mp4, etc):
-    # Debug images:
-    post_renders = []
-    if node.parm("debug_images").eval():
-        for action in actions:
-            # Valid only for Mantra renders;
-            if not isinstance(action, MantraFarm):
-               continue
-            # Generate report per file:
-            debug_render = BatchFarm(job_name = action.parms['job_name'] + "_debug", queue = queue)
-            debug_render.debug_image(action.parms['output_picture'], 
-                                     start = action.parms['start_frame'], 
-                                     end   = action.parms['end_frame'])
-            debug_render.node = action.node
-            debug_render.insert_input(action)
-            post_renders.append(debug_render)
-            # Merge reports:
-            merger   = BatchFarm(job_name = action.parms['job_name'] + "_mergeReports", queue = queue)
-            ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
-            merger.merge_reports(action.parms['output_picture'], ifd_path=ifd_path, resend_frames=node.parm('rerun_bad_frames').eval())
-            merger.node = action.node
-            merger.add_input(debug_render)
-            post_renders.append(merger)
+class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
+    """docstring for HoudiniRedshiftROPWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniRedshiftROPWrapper, self).__init__(index, path, depends, **kwargs)
+        self.name += '_redshift'
+        self.parms['queue'] = 'cuda' 
+        self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
+        self.parms['req_license'] = 'redshift_lic=1'
+        self.parms['req_memory'] = kwargs.get('mantra_ram')
+        self.ifd_name = kwargs.get('ifd_name', self._get_slot('ifd_name'))
+        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
+        self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
+        self.parms['job_name'] = self.ifd_name + "_redshift"
 
-    # Make a movie from proxy frames:
-    if node.parm("make_proxy").eval() and node.parm("make_movie").eval():
-        for action in actions:
-            # Valid only for Mantra renders:
-            if not isinstance(action, MantraFarm):
-                continue
-            movie  = Batch.BatchFarm(job_name = action.parms['job_name'] + "_mp4", queue = queue)
-            movie.make_movie(action.parms['output_picture'])
-            movie.node = action.node
-            movie.insert_input(action)
-            post_renders.append(movie)
 
-    return post_renders
+    def __iter__(self):
+        self._new_index = str(uuid4())
+        self._kwargs['ifd_name'] = self.ifd_name
+        self.get_dependencies = lambda : [self._new_index]
+        if self._slice_idx == 0:
+            ret = HoudiniRSWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
+            self._instances += [ret]
+            yield ret
 
-def build_graph(hafarm_rop, verbose=False):
-    '''Builds simple dependency graph from Rops.
-    '''
-    def is_supported(node):
-        return  node.type().name() in SINGLE_TASK_NODES + MULTI_TASK_NODES
-
-    def add_recursively(parent, actions, rops):
-        for rop in parent.rop.inputs():
-            # Houdini sometimes keeps None inputs...
-            if not rop:
-                continue
-            # This rop was already hafarm'ed, so we just connect its hafarm class 
-            # to our current node (parent)
-            if rop.name() in rops.keys():
-                parent.add_input(rops[rop.name()])
-                continue
-            if not is_supported(rop) or rop.isBypassed():
-                if verbose:
-                    print "Creating NullAction from %s" % rop.name()
-                farm      = NullAction()
-                farm.parms = {'job_name': rop.name()}
-                farm.rop  = rop
-                farm.node = parent.node
-                farm.array_interdependencies  = False
-                if rop.type().name() == "HaFarm":
-                    farm.node  = rop
-            else:
-                # We may import node from different network:
-                if rop.type().name() == 'fetch':
-                    rop = hou.node(rop.parm("source").eval())
-
-                farm = HbatchFarm(parent.node, rop)
-
-            actions.append(farm)
-            parent.add_input(farm)
-            if verbose:
-                print "Adding %s to %s inputs." % (farm.rop.name(), parent.rop.name())
-            rops[rop.name()] = farm
-            if rop.inputs():
-                add_recursively(farm, actions, rops)
+        for x in super(HoudiniRedshiftROPWrapper, self).__iter__():
+            yield x
     
-    # This is book-keeper while creating graph:
-    actions = []
-    rops    = {}
-    # This is the only root we will have...
-    root = RootAction()
-    # NOTE: This is only for debugging:
-    root.parms = {'job_name': hafarm_rop.name()}
-    root.node   = hafarm_rop
-    root.rop    = hafarm_rop
-    root.array_interdependencies  = False
-    # Go:
-    add_recursively(root, actions, rops)
 
-    return root,  actions
- 
+    def get_output_picture(self):
+        return self.hou_node.parm('RS_outputFileNamePrefix').eval()
 
-def render_recursively(root, dry_run=False, ignore_types=[]):
-    """Executes render() command of actions in graph order (children first).
-    """
-    def render_children(action, submitted, ignore_types):
-        for child in action.get_renderable_inputs():
-            render_children(child, submitted, ignore_types)
-            if True in [isinstance(child, t) for t in ignore_types]:
-                continue
-            if child not in submitted:
-                if dry_run:
-                    names = [x.parms['job_name'] for x in child.get_renderable_inputs()]
-                    print "Dry submitting: %s, settings: %s, children: \n\t%s" % (child.parms['job_name'], child.node.name(), ", ".join(names))
-                else:
-                    child.render()
-                submitted += [child]
 
-    submitted = []
-    render_children(root, submitted, ignore_types)
-    return submitted
+    def copy_scene_file(self, **kwargs):
+        ''' It is not clear enough in this place :(
+            but mantra should skip copy scene file 
+            because of input file is *.@TASK_ID/>.ifd
+            and copyfile function mess up it
+        '''
+        pass
 
 
 
-def build_debug_graph(parent, subnet):
-    def build_recursive(parent, subnet, hnode):
-        for child in parent.get_direct_inputs():
-            if child.parms['job_name'] not in [node.name() for node in subnet.children()]:
-                ch = subnet.createNode('merge')
-                ch.setName(child.parms['job_name'])
-            else:
-                ch = subnet.node(child.parms['job_name'])
-            print ch.name() + " connected to " + hnode.name()
-            hnode.setNextInput(ch)
-            build_recursive(child, subnet, ch)
-
-    for child in subnet.children():
-        child.destroy()
-
-    null = subnet.createNode('merge')
-    null.setName('root')
-    build_recursive(parent, subnet, null)
-    for node in subnet.children():
-        node.moveToGoodPosition()
-
-def safe_eval_parm(node, parm_name, value=None):
-    """Eval paramater conditionally."""
-    if node.parm(parm_name):
-        value = node.parm(parm_name).eval()
-        return value
-    else:
-        return None
+class HoudiniBaketexture(HbatchWrapper):
+    def get_output_picture(self):
+        return self.hou_node.parm('vm_uvoutputpicture1').eval()
 
 
-def render_pressed(node):
-    '''Direct callback from Render button on Hafarm ROP.'''
 
-    # FIXME: This shouldn't be here?
-    hou.hipFile.save()
-    queue    = str(node.parm('queue').eval())
-    job_name = node.name()
-    parent_job_name = []
-    output_picture = ''
-    mantra_farm = None
-    hscripts = []
-    mantras  = []
-    posts    = []
-    debug_dependency_graph = node.parm("debug_graph").eval()
+class HoudiniBaketexture30(HbatchWrapper):
+    def get_output_picture(self):
+        return self.hou_node.parm('vm_uvoutputpicture1').eval()
 
-    # a) Ignore all inputs and render from provided ifds:
-    if node.parm("render_from_ifd").eval():
-        root = RootAction()
-        frames = []
-        # support selective frames as well:
-        if  node.parm("use_frame_list").eval():
-            frames = node.parm("frame_list").eval()
+
+
+class HoudiniIFDWrapper(HbatchWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
+        self.name += '_ifd'
+        self.parms['job_name'] += "_generate_ifd"
+        self._set_slot("ifd_name", kwargs.get('ifd_name'))
+
+
+    def get_output_picture(self):
+        return self.hou_node.parm('vm_picture').eval()
+
+
+
+class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        self._output_picture = kwargs.get('output_picture','')
+        self._scene_file = kwargs.get('scene_file','')
+        super(HoudiniMantraExistingIfdWrapper, self).__init__(index, path, depends, **kwargs)
+        self.name += '_render'
+        name_prefix = kwargs.get('name_prefix','')
+        threads = kwargs.get('mantra_slots')
+        if self.parms['cpu_share'] != 1.0:
+            self.parms['command_arg'] = ['-j', const.MAX_CORES]
+        else:
+            self.parms['command_arg'] = ['-j', str(threads)]
+
+        self.parms['scene_file'] = self._scene_file
+        self.parms['job_name'] = self.parms['job_name'] + "_" + name_prefix + "from" + self.hou_node.name() 
+        self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
+        self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
+        self.parms['slots'] = threads
+        self.parms['req_license'] = 'mantra_lic=1'
+        self.parms['req_memory'] = kwargs.get('mantra_ram')
+        self.parms['start_frame'] = kwargs.get('start_frame', 0)
+        self.parms['end_frame'] = kwargs.get('end_frame', 0)
+
+
+    def get_output_picture(self):
+        return self._output_picture
+
+
+    def copy_scene_file(self, **kwargs):
+        ''' It is not clear enough in this place :(
+            but mantra should skip copy scene file 
+            because of input file is *.@TASK_ID/>.ifd
+            and copyfile function mess up it
+        '''
+        pass
+
+
+
+class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniMantraWrapper, self).__init__(index, path, depends, **kwargs)
+        mantra_filter = kwargs.get('mantra_filter')
+        frame = None
+        self._slices = kwargs.get('frames')
+        ifd_path = kwargs.get('ifd_path')
+        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name() 
+        self.ifd_name = kwargs.get("ifd_name", name)
+        self.parms['scene_file'] = os.path.join(ifd_path, self.ifd_name + '.' + const.TASK_ID + '.ifd')
+        self.parms['job_name'] = name + '_mantra'
+        self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
+        self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
+        if self._tiles_x * self._tiles_y > 1:
+            self.name += '_tiles'
+            self._vm_tile_render = True
+        elif self._vm_tile_render:
+            self.name += '_tiles'
+            self._tiles_x = self.hou_node.parm('vm_tile_count_x').eval()
+            self._tiles_y = self.hou_node.parm('vm_tile_count_y').eval()
+        else:
+            self.parms['command'] << { 'mantra_filter': mantra_filter }
+        self.parms['tile_x'] = self._tiles_x
+        self.parms['tile_y'] = self._tiles_y
+        self.parms['command'] << { 'command' : '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval()) }
+        self.parms['start_frame'] = frame if frame else int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
+
+
+    def get_step_frame(self):
+        return self.hou_node.parm("ifd_range3").eval()
+
+
+    def __iter__(self):
+        self._kwargs['ifd_name'] = self.ifd_name
+        ifd = HoudiniIFDWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
+        self._instances += [ifd]
+        yield ifd
+
+        pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
+        for n in pieces:
+            mtr = HoudiniMantraWrapper(n, self.path, [ifd.index], **self._kwargs)
+            self._instances += [mtr]
+            mtr._instances = self._instances
+            yield mtr
+
+
+    def get_output_picture(self):
+        return self.hou_node.parm('vm_picture').eval()
+
+
+    def post_render_actions(self):
+        post_renders = []
+
+        if self._slices != [1]:
+            self._frames_render()
+
+        if self._vm_tile_render == True:
+           post_renders += self._tile_post_render()
+
+        if self._make_proxy == True:
+            post_renders += self._proxy_post_render()
+
+        if self._debug_images == True:
+            post_renders += self._debug_post_render()
+            
+        return post_renders
+
+
+    def _frames_render(self):
+        self.parms['job_name'] += "_frame%s" % self._slices[self._slice_idx]
+        mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
+
+        for k, m in houdini_dependencies.iteritems():
+            if self._instances[1].index in m: # It is not clear that in __iter__() function instances look like that [ifd.index, root.index, rest.index, ...] 
+                houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
+
+
+    def _tile_post_render(self):
+        '''Generates merge job with general BatchFarm class for joining tiles.'''
+        self.parms['job_name'] += "_TILES"
+        post_renders = []
+        TILES_SUFFIX = "_tile%02d_"
+        
+        filepath, padding, ext = self.parms['output_picture'].rsplit('.',2)
+        mask_filename = '.'.join([filepath + TILES_SUFFIX, '%s', ext])
+        output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
+        self.parms['output_picture'] = output_picture
+        
+        join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
+                                            , self._tiles_x, self._tiles_y
+                                            , mask_filename
+                                            , self.parms['priority'] + 1
+                                            , make_proxy = self._make_proxy 
+                                            , start = self.parms['start_frame']
+                                            , end = self.parms['end_frame']
+                                        )
+        mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
+        self.index, join_tiles_action.index = join_tiles_action.index, self.index
+        join_tiles_action.add( *mantra_instances )
+        post_renders += [ join_tiles_action ]
+
+        return post_renders
+
+
+    
+class HoudiniAlembicWrapper(HbatchWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniAlembicWrapper, self).__init__(index, path, depends, **kwargs)
+
+    def get_step_frame(self):
+        return int(self.hou_node.parm('f2').eval())
+
+    def get_output_picture(self):
+        return self.hou_node.parm('filename').eval()
+
+
+
+class HoudiniGeometryWrapper(HbatchWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniGeometryWrapper, self).__init__(index, path, depends, **kwargs)
+
+    def get_output_picture(self):
+        return self.hou_node.parm('sopoutput').eval()
+
+
+
+class HoudiniCompositeWrapper(HbatchWrapper):
+    """docstring for HaMantraWrapper"""
+    def __init__(self, index, path, depends, **kwargs):
+        super(HoudiniCompositeWrapper, self).__init__(index, path, depends, **kwargs)
+
+
+    def get_output_picture(self):
+        return self.hou_node.parm('copoutput').eval()
+
+
+    def post_render_actions(self):
+        post_renders = []
+
+        if self._make_proxy == True:
+            post_renders += self._proxy_post_render()
+
+        if self._debug_images == True:
+            post_renders += self._debug_post_render()
+            
+        return post_renders
+
+
+
+class HoudiniWrapper(type):
+    """docstring for HaHoudiniWrapper"""
+    def __new__(cls, name, *args, **kwargs):
+        hou_drivers = {   'ifd' : HoudiniMantraWrapper
+                        , 'baketexture' :  HoudiniBaketexture
+                        , 'baketexture::3.0' :  HoudiniBaketexture30                        
+                        , 'alembic': HoudiniAlembicWrapper
+                        , 'geometry': HoudiniGeometryWrapper
+                        , 'comp': HoudiniCompositeWrapper
+                        , 'Redshift_ROP': HoudiniRedshiftROPWrapper
+                    }
+        return hou_drivers[name](*args, **kwargs)
+
+
+
+class HaContextHoudini(object):
+    def _get_graph(self, **kwargs):
+        hafarm_node = hou.pwd()
+        if hafarm_node.type().name() != 'HaFarm':
+            raise Exception('Please, select the HaFarm node.')
+
+        use_frame_list = hafarm_node.parm("use_frame_list").eval()
+        frames = [1]
+        if use_frame_list == True:
+            frames = hafarm_node.parm("frame_list").eval()
             frames = utils.parse_frame_list(frames)
 
-        # TODO Make validiation of submiting jobs...
-        mantra_frames = mantra_render_from_ifd(node, frames)
-        root.add_inputs(mantra_frames)
-        posts = post_render_actions(node, mantra_frames)
-        root.add_inputs(posts)
-        # End of story:
-        render_recursively(root, debug_dependency_graph)
-        root.clear()
-        return 
+        tile_x, tile_y = 1, 1
+        if hafarm_node.parm('tiles').eval() == True:
+            tile_x, tile_y = hafarm_node.parm('tile_x').eval(), hafarm_node.parm('tile_y').eval()
         
-    # b) Iterate over inputs 
-    print
-    print "Building dependency graph:"
-    root, hscripts = build_graph(node)
+        global_parms = dict(
+                  queue = str(hafarm_node.parm('queue').eval())
+                , group = str(hafarm_node.parm('group').eval())
+                , job_on_hold = bool(hafarm_node.parm('job_on_hold').eval())
+                , priority = int(hafarm_node.parm('priority').eval())
+                , ignore_check = True if hafarm_node.parm("ignore_check").eval() else False
+                , email_list  = [utils.get_email_address()] #+ list(hafarm_node.parm('additional_emails').eval().split()) if hafarm_node.parm("add_address").eval() else []
+                , email_opt  = str(hafarm_node.parm('email_opt').eval())
+                , req_start_time = hafarm_node.parm('delay').eval()*3600
+                , frame_range_arg = ["%s%s%s", '', '', '']
+                , resend_frames = hafarm_node.parm('rerun_bad_frames').eval()
+                , step_frame = hafarm_node.parm('step_frame').eval()
+                , ifd_path = hafarm_node.parm("ifd_path").eval()
+                , frames = frames
+                , use_frame_list = use_frame_list
+                , make_proxy = bool(hafarm_node.parm("make_proxy").eval())
+                , make_movie = hafarm_node.parm("make_movie").eval()
+                , debug_images = hafarm_node.parm("debug_images").eval()
+                , mantra_filter = hafarm_node.parm("ifd_filter").eval()
+                , tile_x = tile_x
+                , tile_y = tile_y
+                , cpu_share = hafarm_node.parm("cpu_share").eval()
+                , max_running_tasks = const.hafarm_defaults['max_running_tasks']
+                , mantra_slots = const.hafarm_defaults['slots']
+                , mantra_ram = const.hafarm_defaults['req_memory']
+                , hbatch_slots = const.hafarm_defaults['slots']
+                , hbatch_ram = const.hafarm_defaults['req_memory']
+            )
 
+        task_control = {}
 
-    for action in hscripts:
-        # This is not mantra node, we are done here:
-        if action.rop.type().name() not in ("ifd", "baketexture", "baketexture::3.0"):
-            continue
+        if hafarm_node.parm('more').eval() == True:
+            task_control = dict(
+                      max_running_tasks = hafarm_node.parm('max_running_tasks').eval()
+                    , mantra_slots = int(hafarm_node.parm('mantra_slots').eval())
+                    , mantra_ram = hafarm_node.parm("mantra_ram").eval()
+                    , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
+                    , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
+                )
 
-        # Render randomly selected frames provided by the user in HaFarm parameter:
-        if  action.node.parm("use_frame_list").eval():
-            frames         = action.node.parm("frame_list").eval()
-            frames         = utils.parse_frame_list(frames)
-            mantra_frames  = mantra_render_frame_list(action, frames)
+        global_parms.update(task_control)
+        
+        clsctx = None
+        render_from_ifd = hafarm_node.parm("render_from_ifd").eval()
+        if render_from_ifd == True:
+            clsctx = HaContextHoudiniExistingIfd(hafarm_node, global_parms)
         else:
-            # TODO: Move tiling inside MantraFarm class...
-            # Custom tiling:
-            if safe_eval_parm(action.rop, 'vm_tile_render'):
-                mantra_frames, merger = mantra_render_with_tiles(action)
-            else:
-                # Proceed normally (no tiling required):
-                mantra_frames = [MantraFarm(action.node, action.rop, job_name = action.parms['job_name'] + "_mantra")]
-                # Build parent dependency:
-                action.insert_outputs(mantra_frames)
-
-        # Posts actions
-        posts = post_render_actions(action.node, mantra_frames)
-        root.add_inputs(posts)
-    
+            clsctx = HaContextHoudiniMantra(hafarm_node, global_parms)
+        return clsctx._get_graph(**kwargs)
 
 
-    # Debug previous renders (ignore all rops but debugers) mode:
-    if node.parm('debug_previous_render'):
-        if node.parm('debug_previous_render').eval():
-            render_recursively(root, debug_dependency_graph, ignore_types=[MantraFarm, HbatchFarm])
-            return
- 
-    
-    # Again end of story:
-    print "Submitting nodes in top-to-buttom from dependency graph:"
-    render_recursively(root, debug_dependency_graph)
+    def pre_render(self):
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
 
-    if debug_dependency_graph:
-        subnet = node.parent().createNode("subnet")
-        build_debug_graph(root, subnet)
 
-    # Side effect of singelton root. It's not destroyed after run, so we need to clean it here.
-    root.clear()
 
+class HaContextHoudiniExistingIfd(object):
+    def __init__(self, hafarm_node, global_parms):
+        self.hafarm_node = hafarm_node
+        self.global_parms = global_parms
+
+
+    def _get_ifd_files(self):
+        ifds  = self.hafarm_node.parm("ifd_files").eval()
+        ifds = ifds.strip()
+        if not os.path.exists(ifds):
+            raise Exception('Error! Ifd file not found: "%s"'%ifds)
+        # Rediscover ifds:
+        # FIXME: should be simple unexpandedString()
+        seq_details = utils.padding(ifds)
+        # Find real file sequence on disk. Param could have $F4...
+        real_ifds = glob.glob(seq_details[0] + "*" + seq_details[-1])
+        real_ifds.sort()
+        if real_ifds == []:
+            print "Can't find ifds files: %s" % ifds
+        return real_ifds, os.path.split(seq_details[0])[1], seq_details[0] + const.TASK_ID + '.ifd'
+
+
+    def _get_graph(self, **kwargs):
+        graph = HaGraph(graph_items_args=[])
+
+        real_ifds, name_prefix, scene_file = self._get_ifd_files()
+        if real_ifds == []:
+            return graph
+
+        if self.global_parms['use_frame_list'] == False:
+            frames = xrange(self.hafarm_node.parm("ifd_range1").eval(), self.hafarm_node.parm("ifd_range2").eval())
+            self.global_parms['frames'] = frames
+
+        params_for_node_wrappers = dict(  output_picture = utils.get_ray_image_from_ifd(real_ifds[0])
+                                        , scene_file = scene_file
+                                        , name_prefix = name_prefix
+                                        , render_exists_ifd = True
+                                        , start_frame = self.hafarm_node.parm("ifd_range1").eval()
+                                        , end_frame = self.hafarm_node.parm("ifd_range2").eval()
+                                    )
+        self.global_parms.update(params_for_node_wrappers)
+        item = HoudiniMantraExistingIfdWrapper( str(uuid4()), self.hafarm_node.path(), [], **self.global_parms )
+        graph.add_node( item )
+        return graph
+
+
+class HaContextHoudiniMantra(object):
+    def __init__(self, hafarm_node, global_parms):
+        self.hafarm_node = hafarm_node
+        self.global_parms = global_parms
+
+
+    def _get_graph(self, **kwargs):
+        params_for_node_wrappers = dict(
+                  ifd_path_is_default = self.hafarm_node.parm("ifd_path").isAtDefault()
+                , use_one_slot = self.hafarm_node.parm('use_one_slot').eval()
+                , command_arg = self.hafarm_node.parm('command_arg').eval()
+                , frame_list = str(self.hafarm_node.parm("frame_list").eval())
+            )
+
+        graph = HaGraph(graph_items_args=[])
+        self.global_parms.update(params_for_node_wrappers)
+        for x in get_houdini_render_nodes(self.hafarm_node.path()):
+            hou_node_type, index, deps, path = x
+            for item in HoudiniWrapper( hou_node_type, index, path, houdini_dependencies[index], **self.global_parms ):
+                graph.add_node( item  )
+                for post in item.post_render_actions():
+                    graph.add_node( post )
+        return graph

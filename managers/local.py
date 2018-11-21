@@ -360,6 +360,7 @@ class LocalServer(object):
     def job_submit(self, job_file):
         """ Remote method used for job submission.
         """
+        raise Exception('Not implemented yet')
         if os.path.isfile(job_file):
             job_candidate = hafarm.HaFarm()
             job_candidate.load_parms_from_file(job_file, overwrite_name=False)
