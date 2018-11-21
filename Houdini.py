@@ -287,16 +287,11 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mantra_filter = kwargs.get('mantra_filter')
         frame = None
         self._slices = kwargs.get('frames')
-        self._indices = map(lambda x: str(uuid4()), self._slices)
-        self._indices[0] = index
-        if self._slices != [1]:
-            frame = self._slices[self._slice_idx]
         ifd_path = kwargs.get('ifd_path')
-        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
-        self.ifd_name = self._get_slot("ifd_name", self.parms['job_name'])
-        # self._set_slot("ifd_name", ifd_name)
+        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name() 
+        self.ifd_name = kwargs.get("ifd_name", name)
         self.parms['scene_file'] = os.path.join(ifd_path, self.ifd_name + '.' + const.TASK_ID + '.ifd')
-        self.parms['job_name'] = self.ifd_name + '_mantra'
+        self.parms['job_name'] = name + '_mantra'
         self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
         if self._tiles_x * self._tiles_y > 1:
@@ -311,7 +306,6 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self.parms['tile_x'] = self._tiles_x
         self.parms['tile_y'] = self._tiles_y
         self.parms['command'] << { 'command' : '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval()) }
-        self._root_index = kwargs.get('root_index')
         self.parms['start_frame'] = frame if frame else int(self.hou_node.parm('f1').eval())
         self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
 
@@ -321,17 +315,17 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
 
     def __iter__(self):
-        self._new_index = str(uuid4())
-        self._kwargs['root_index'] = self.index
         self._kwargs['ifd_name'] = self.ifd_name
-        self.get_dependencies = lambda : [self._new_index]
-        if self._slice_idx == 0:
-            ret = HoudiniIFDWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
-            self._instances += [ret]
-            yield ret
+        ifd = HoudiniIFDWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
+        self._instances += [ifd]
+        yield ifd
 
-        for x in super(HoudiniMantraWrapper, self).__iter__():
-            yield x
+        pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
+        for n in pieces:
+            mtr = HoudiniMantraWrapper(n, self.path, [ifd.index], **self._kwargs)
+            self._instances += [mtr]
+            mtr._instances = self._instances
+            yield mtr
 
 
     def get_output_picture(self):
@@ -361,7 +355,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
 
         for k, m in houdini_dependencies.iteritems():
-            if self._root_index in m:
+            if self._instances[1].index in m: # It is not clear that in __iter__() function instances look like that [ifd.index, root.index, rest.index, ...] 
                 houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
 
 
@@ -384,14 +378,8 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
                                             , start = self.parms['start_frame']
                                             , end = self.parms['end_frame']
                                         )
-
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
-
-        for i, n in enumerate(mantra_instances):
-            if n.index == self._root_index:
-                break
-
-        n.index, join_tiles_action.index = join_tiles_action.index, n.index
+        self.index, join_tiles_action.index = join_tiles_action.index, self.index
         join_tiles_action.add( *mantra_instances )
         post_renders += [ join_tiles_action ]
 
