@@ -182,8 +182,9 @@ def main():
 
         if options.ifd_name:
             ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.ifd")
+            ifd_name = os.path.expandvars(ifd_name)
             driver.parm('soho_diskfile').set(ifd_name)
-    
+
     #Redshift pass:
     if driver.type().name() == 'Redshift_ROP' and options.generate_ifds:
         driver.parm("RS_archive_enable").set(1)
