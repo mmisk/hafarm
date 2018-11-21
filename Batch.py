@@ -6,7 +6,6 @@ from HaGraph import HaGraphItem
 from HaGraph import HaGraphDependency
 
 class BatchBase(HaGraphItem):
-
     def __init__(self, name, tags, *args, **kwargs):
         """
         Kwargs:
@@ -34,7 +33,6 @@ class BatchBase(HaGraphItem):
 
 
 class BatchMp4(BatchBase):
-
     def __init__(self, filename, *args, **kwargs):
         name = 'ffmpeg'
         tags = '/hafarm/ffmpeg'
@@ -49,7 +47,6 @@ class BatchMp4(BatchBase):
 
 
 class BatchDebug(BatchBase):
-
     def __init__(self, filename, *args, **kwargs):
         """
         Args:
@@ -108,7 +105,6 @@ class BatchReportsMerger(BatchBase):
 
 class BatchJoinTiles(BatchBase):
     """Creates a command specificly for merging tiled rendering with oiiotool."""
-
     def __init__(self, filename, tiles_x, tiles_y, mask_filename, priority, *args, **kwargs):
         """
         Args:
