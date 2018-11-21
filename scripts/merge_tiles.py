@@ -30,14 +30,16 @@ def main():
     filemask = options.filemask
 
     tile_files = []
-    for i in xrange(0, (tile_x*tile_x)):
+    tiles_lost = []
+    for i in xrange(0, (tile_x*tile_y)):
         filepath = filemask % (i,frame)
         if not os.path.exists(filepath):
+            tiles_lost += [filepath]
             continue
         tile_files += [ filepath ]
 
-    if len(tile_files) != (tile_x*tile_x):
-        raise Exception("Tile not found")
+    if len(tile_files) != (tile_x*tile_y):
+        raise Exception("Tile not found: %s" % tiles_lost)
 
     #TODO: merge metadata from tiles
 
