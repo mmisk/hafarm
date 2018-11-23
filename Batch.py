@@ -5,6 +5,8 @@ from uuid import uuid4
 from HaGraph import HaGraphItem
 from HaGraph import HaGraphDependency
 
+
+
 class BatchBase(HaGraphItem):
     def __init__(self, name, tags, *args, **kwargs):
         """
@@ -32,6 +34,7 @@ class BatchBase(HaGraphItem):
         return '_'.join([os.path.split(name)[1], urlsafe_b64encode(os.urandom(3))])
 
 
+
 class BatchMp4(BatchBase):
     def __init__(self, filename, *args, **kwargs):
         name = 'ffmpeg'
@@ -44,6 +47,7 @@ class BatchMp4(BatchBase):
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
         self.parms['command'] << {'command': 'ffmpeg '}
+
 
 
 class BatchDebug(BatchBase):
@@ -68,6 +72,7 @@ class BatchDebug(BatchBase):
         self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
         self.parms['frame_padding_length'] = int(frame_padding_length)
+
 
 
 class BatchReportsMerger(BatchBase):
@@ -101,6 +106,7 @@ class BatchReportsMerger(BatchBase):
                      ifd_path,
                      resend_frames,
                      mad_threshold)}
+
 
 
 class BatchJoinTiles(BatchBase):
