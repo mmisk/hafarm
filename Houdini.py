@@ -121,6 +121,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         return post_renders
 
 
+
 class HbatchWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
