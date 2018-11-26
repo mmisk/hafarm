@@ -63,7 +63,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
         self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
+        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file)
 
 
     def __iter__(self):
@@ -145,7 +145,10 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
         ifd_name = kwargs.get('ifd_name')
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = ["--ifd_name %s" %  ifd_name, "--ignore_tiles", "--generate_ifds" ]
+        command_arg = []
+        if ifd_name:
+            command_arg += ["--ifd_name %s" %  ifd_name]
+        command_arg += [ "--ignore_tiles", "--generate_ifds" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -165,7 +168,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] += "_generate_rs"
+        self.parms['job_name'] += "_rs"
 
 
     def get_output_picture(self):
@@ -182,7 +185,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
-        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name() 
+        name = self.generate_unique_job_name(self._scene_file) 
         self.ifd_name = kwargs.get("ifd_name", name)
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
@@ -234,7 +237,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_ifd'
-        self.parms['job_name'] += "_generate_ifd"
+        self.parms['job_name'] += "_ifd"
         self._set_slot("ifd_name", kwargs.get('ifd_name'))
 
 
