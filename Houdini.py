@@ -63,7 +63,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
         self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
+        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file)
 
 
     def __iter__(self):
@@ -121,6 +121,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         return post_renders
 
 
+
 class HbatchWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -144,7 +145,10 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
         ifd_name = kwargs.get('ifd_name')
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = ["--ifd_name %s" %  ifd_name, "--ignore_tiles", "--generate_ifds" ]
+        command_arg = []
+        if ifd_name:
+            command_arg += ["--ifd_name %s" %  ifd_name]
+        command_arg += [ "--ignore_tiles", "--generate_ifds" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -164,8 +168,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] += "_generate_rs"
-        self._set_slot("ifd_name", kwargs.get('ifd_name'))
+        self.parms['job_name'] += "_rs"
 
 
     def get_output_picture(self):
@@ -182,24 +185,26 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
-        self.ifd_name = kwargs.get('ifd_name', self._get_slot('ifd_name'))
+        name = self.generate_unique_job_name(self._scene_file) 
+        self.ifd_name = kwargs.get("ifd_name", name)
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        self.parms['job_name'] = self.ifd_name + "_redshift"
+        self.parms['job_name'] = name + "_redshift"
 
 
     def __iter__(self):
-        self._new_index = str(uuid4())
         self._kwargs['ifd_name'] = self.ifd_name
-        self.get_dependencies = lambda : [self._new_index]
-        if self._slice_idx == 0:
-            ret = HoudiniRSWrapper(self._new_index, self.path, self.dependencies, **self._kwargs)
-            self._instances += [ret]
-            yield ret
+        rs = HoudiniRSWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
+        self._instances += [rs]
+        yield rs
 
-        for x in super(HoudiniRedshiftROPWrapper, self).__iter__():
-            yield x
-    
+        pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
+        for n in pieces:
+            rsrop = HoudiniRedshiftROPWrapper(n, self.path, [rs.index], **self._kwargs)
+            self._instances += [rsrop]
+            rsrop._instances = self._instances
+            yield rsrop
+
 
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
@@ -232,7 +237,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_ifd'
-        self.parms['job_name'] += "_generate_ifd"
+        self.parms['job_name'] += "_ifd"
         self._set_slot("ifd_name", kwargs.get('ifd_name'))
 
 
@@ -264,6 +269,10 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['start_frame'] = kwargs.get('start_frame', 0)
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
+
+        if kwargs.get('render_exists_ifd'):
+            self.parms['scene_file'] = kwargs.get('scene_file')
+            self.parms['output_picture'] = kwargs.get('output_picture')
 
 
     def get_output_picture(self):
