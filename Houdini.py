@@ -270,6 +270,10 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['start_frame'] = kwargs.get('start_frame', 0)
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
 
+        if kwargs.get('render_exists_ifd'):
+            self.parms['scene_file'] = kwargs.get('scene_file')
+            self.parms['output_picture'] = kwargs.get('output_picture')
+
 
     def get_output_picture(self):
         return self._output_picture
