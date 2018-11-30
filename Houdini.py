@@ -191,7 +191,6 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['job_name'] = self.ifd_name + "_" + self.hou_node.name() + "_redshift"
 
 
-
     def __iter__(self):
         self._kwargs['ifd_name'] = self.ifd_name
         rs = HoudiniRSWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
