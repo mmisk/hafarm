@@ -1,3 +1,4 @@
 { 
-    "command" : "{{ command }} {% if mantra_filter %} -P \"{{ mantra_filter }} {{ proxy }} {{ tiling }}\"{% endif %}"
+     "command" : "{{ command }} {% if mantra_filter %} -P \"{{ mantra_filter }} {{ proxy }} {{ tiling }}\"{% endif %}"
+    ,"job_name" : "{% if job_basename %}{{ job_basename }}{% else %}no_name_job{% endif %}_{{ jobname_hash }}_{{ render_driver_name }}_{{ render_driver_type }}"
 }
