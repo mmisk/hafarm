@@ -167,7 +167,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] = kwargs.get('ifd_name') + '_ifd'
+        self.parms['job_name'] = kwargs.get('ifd_name') + '_rs'
 
 
     def get_output_picture(self):
@@ -189,7 +189,6 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
         self.parms['job_name'] = self.ifd_name + "_" + self.hou_node.name() + "_redshift"
-
 
 
     def __iter__(self):
@@ -517,6 +516,8 @@ class HaContextHoudini(object):
                 )
 
         global_parms.update(task_control)
+
+        hou.hipFile.save()
         
         clsctx = None
         render_from_ifd = hafarm_node.parm("render_from_ifd").eval()
