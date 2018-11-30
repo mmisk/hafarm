@@ -516,6 +516,8 @@ class HaContextHoudini(object):
                 )
 
         global_parms.update(task_control)
+
+        hou.hipFile.save()
         
         clsctx = None
         render_from_ifd = hafarm_node.parm("render_from_ifd").eval()
