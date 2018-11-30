@@ -4,6 +4,8 @@ import shutil
 import parms
 from parms import HaFarmParms
 
+import random
+import string
 
 class HaGraphDependency(list):
     _all_dependencies = {}
@@ -110,13 +112,15 @@ class HaGraphItem(object):
         return {'copy_scene_file': new_scene_file, 'error': error}
 
 
+    def get_jobname_hash(self):
+        return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(4))
+
+
     def generate_unique_job_name(self, name='no_name_job'):
         """Returns unique name for a job. 'Name' is usually a scene file. 
         """
-        # TODO: Make it more suitable for disk paths. (no *, -)
-        from base64 import urlsafe_b64encode
         name = os.path.basename(name)
-        return "_".join([os.path.split(name)[1], urlsafe_b64encode(os.urandom(3))])
+        return "_".join([os.path.split(name)[1], self.get_jobname_hash()])
 
 
     def _set_slot(self, name, val):

@@ -1,6 +1,8 @@
 # 2018.11.09 13:58:48 CET
 from graphviz import Digraph
 
+
+
 class GraphvizRender(object):
     """Paint graph with graphviz"""
 
@@ -14,7 +16,7 @@ class GraphvizRender(object):
         i = 0
         for k, n in self.hagraphitems_lst.iteritems():
             kw = {}
-            dot.node(str(k), ('%s\n%s\n%s\n%s' % (n.index,
+            dot.node(str(k), ('%s\n%s\n%s\n%s' % (n.parms['job_name'],
              n.tags,
              n.name,
              n.path)), **kw)
