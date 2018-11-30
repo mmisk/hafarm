@@ -3,32 +3,28 @@ import re
 from hafarm.const import ConstantItem
 
 
-item = ConstantItem('command')
+command = ConstantItem('command')
 
-item << { 'command': "$USER/workspace" }
+command << { 'command': "$USER/workspace" }
 
 str_obj = "$USER/workspace"
 
 
-_varprog = re.compile(r'\$(\w+|\{[^}]*\})')
-i = 0
-while True:
-    m = _varprog.search(item, i)
-    print m
-    if not m:
-        break
-    i, j = m.span(0)
-    name = m.group(1)
-    if name.startswith('{') and name.endswith('}'):
-        name = name[1:-1]
-    if name in os.environ:
-        tail = path[j:]
-        path = path[:i] + os.environ[name]
-        i = len(path)
-        path += tail
-    else:
-        i = j
 
 
-print os.path.expandvars(str_obj)
-print os.path.expandvars(item)
+job_name = ConstantItem('job_name')
+
+job_name << { 'jobname_hash' : 'X1xx' }
+job_name << { 'render_driver_name' : 'ROP1' }
+job_name << { 'render_driver_type' : 'ifd' }
+
+print job_name
+assert str(job_name) == 'no_name_job_X1xx_ROP1_ifd'
+
+
+job_name << { 'job_basename' : 'test1.hip' }
+
+print job_name
+assert str(job_name) == 'test1.hip_X1xx_ROP1_ifd'
+
+
