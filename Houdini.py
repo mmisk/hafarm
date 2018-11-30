@@ -167,7 +167,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] = kwargs.get('ifd_name') + '_ifd'
+        self.parms['job_name'] = kwargs.get('ifd_name') + '_rs'
 
 
     def get_output_picture(self):
