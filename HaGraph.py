@@ -123,14 +123,6 @@ class HaGraphItem(object):
         return "_".join([os.path.split(name)[1], self.get_jobname_hash()])
 
 
-    def _set_slot(self, name, val):
-        self._slots[name] = val
-
-
-    def _get_slot(self, name, default=""):
-        return self._slots.get(name, default)
-
-
     def __repr__(self):
         return 'HaGraphItem("%s",%s,"%s","%s","%s")' % \
             (self.index, self.dependencies, self.name, self.path, self.tags)
