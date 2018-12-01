@@ -1,4 +1,5 @@
 # 2018.11.09 13:58:48 CET
+import tempfile
 from graphviz import Digraph
 
 
@@ -30,4 +31,4 @@ class GraphvizRender(object):
                     dot.edge(n, m)
 
         dot.format = 'png'
-        dot.render('graph.gv', '/home/snazarenko', True, cleanup=True)
+        dot.render('graph.gv', tempfile.gettempdir(), True, cleanup=True)
