@@ -184,7 +184,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
-        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name() 
+        name = self.generate_unique_job_name(self._scene_file)
         self.ifd_name = kwargs.get("ifd_name", name)
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
