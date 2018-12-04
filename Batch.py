@@ -26,13 +26,6 @@ class BatchBase(HaGraphItem):
         self.parms['end_frame'] = 1
         self.parms['job_name'] = kwargs.get('job_name', self._generate_unique_job_name(self.name))
 
-    def _generate_unique_job_name(self, name = 'no_name_job'):
-        """Returns unique name for a job. 'Name' is usually a scene file. 
-        """
-        from base64 import urlsafe_b64encode
-        name = os.path.basename(name)
-        return '_'.join([os.path.split(name)[1], urlsafe_b64encode(os.urandom(3))])
-
 
 
 class BatchMp4(BatchBase):
@@ -101,7 +94,7 @@ class BatchReportsMerger(BatchBase):
         path, filename = os.path.split(filename)
         scene_file_path, _, _, _ = utils.padding(filename, 'shell')
         log_path = os.path.join(path, const.DEBUG_POSTFIX)
-        self.parms['scene_file'] = os.path.join(log_path, scene_file_path) + '.json'
+        self.parms['scene_file'] << { 'scene_file_path': log_path,  scene_file_path, 'scene_file_ext': 'json' }
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email,
                      ifd_path,
                      resend_frames,
