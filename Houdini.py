@@ -184,7 +184,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
-        name = self.generate_unique_job_name(self._scene_file) 
+        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name() 
         self.ifd_name = kwargs.get("ifd_name", name)
         self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
@@ -294,10 +294,9 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mantra_filter = kwargs.get('mantra_filter')
         frame = None
         self._slices = kwargs.get('frames')
-        ifd_path = kwargs.get('ifd_path')
         name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
         self.ifd_name = kwargs.get("ifd_name", name)
-        self.parms['scene_file'] = os.path.join(ifd_path, self.ifd_name + '.' + const.TASK_ID + '.ifd')
+        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.ifd')
         self.parms['job_name'] = self.ifd_name + '_mantra'
         self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
