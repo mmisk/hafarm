@@ -296,8 +296,6 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mantra_filter = kwargs.get('mantra_filter')
         frame = None
         self._slices = kwargs.get('frames')
-        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
-
         self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
         if self._tiles_x * self._tiles_y > 1:
