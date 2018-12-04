@@ -12,6 +12,52 @@ def help():
         \n Alternatively frame list may be specifid with -l (-l 1-3,4,5,6,7-12x2)'
 
 
+class BaseDriver(object):
+    driver = None
+    def __init__(self, driver):
+        self.driver = driver
+
+    @classmethod
+    def get_driver(cls):
+        return cls.driver
+
+    @property
+    def vmpicture(self):
+        return self.driver.parm(self._vmpicture)
+
+
+
+class RsDriver(BaseDriver):
+    _vmpicture = 'RS_outputFileNamePrefix'
+
+
+class IfdDriver(BaseDriver):
+    _vmpicture = 'vm_picture'
+
+
+class BtDriver(BaseDriver):
+    _vmpicture = 'vm_uvoutputpicture1'
+        
+
+class FixDriver(object):
+    def __new__(cls, driver, *args, **kwargs):
+        hou_drivers = {   'ifd' : IfdDriver
+                        , 'baketexture' :  BtDriver
+                        , 'baketexture::3.0' :  BtDriver                        
+                        , 'Redshift_ROP': RsDriver
+                    }
+        return hou_drivers[driver.type().name()](driver, **kwargs)
+
+
+def fix_driver_vmpicture(driver):
+    fd = FixDriver(driver)
+    picture_name = fd.vmpicture.eval()
+    if ('_%s_' % driver.name() in picture_name) \
+         and ('.%s.' % driver.name() in picture_name):
+            fd.vmpicture.set(picture_name.replace( '.%s.' % driver.name(), '.' ))
+
+
+
 def parseOptions():
     usage = "usage: %prog [options] arg"
     parser = OptionParser(usage)
@@ -197,6 +243,8 @@ def main():
         if options.ifd_name:
             ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.rs")
             driver.parm('RS_archive_file').set(ifd_name)
+
+    fix_driver_vmpicture(driver)
 
     # vectorize exports:
     if options.vectorize_export and not HAFARM_DISABLE_VECTORIZE_EXPORT:
