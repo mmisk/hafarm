@@ -14,30 +14,47 @@ def help():
 
 class BaseDriver(object):
     driver = None
+    _diskfile = 'soho_diskfile'
+    _disk_enable = 'soho_outputmode'
+    _ext = '.$F.ifd'
+
     def __init__(self, driver):
         self.driver = driver
 
-    @classmethod
-    def get_driver(cls):
-        return cls.driver
 
     @property
     def vmpicture(self):
         return self.driver.parm(self._vmpicture)
 
 
+    @property
+    def disk_enable(self):
+        return self.driver.parm(self._disk_enable)
+
+
+    @property
+    def diskfile(self):
+        return self.driver.parm(self._diskfile)
+
+
 
 class RsDriver(BaseDriver):
     _vmpicture = 'RS_outputFileNamePrefix'
+    _disk_enable = 'RS_archive_enable'
+    _diskfile = 'RS_archive_file'
+    _ext = '.$F.rs'
+
 
 
 class IfdDriver(BaseDriver):
     _vmpicture = 'vm_picture'
 
 
+
 class BtDriver(BaseDriver):
     _vmpicture = 'vm_uvoutputpicture1'
-        
+
+
 
 class FixDriver(object):
     def __new__(cls, driver, *args, **kwargs):
@@ -49,12 +66,31 @@ class FixDriver(object):
         return hou_drivers[driver.type().name()](driver, **kwargs)
 
 
+
+def set_generate_ifd(driver, options):
+    fd = FixDriver(driver)
+    fd.disk_enable.set(1)
+    scene_path, scene_name = os.path.split(hou.hipFile.name())
+    scene_name, ext = os.path.splitext(scene_name)
+    rs_name = os.path.join(options.ifd_path, scene_name + fd._ext)
+    fd.diskfile.set(rs_name)
+
+    if options.ifd_name:
+        ifd_name = os.path.join(options.ifd_path, options.ifd_name + fd._ext)
+        fd.diskfile.set(ifd_name)
+
+
+
 def fix_driver_vmpicture(driver):
+    """
+    .../test1.hip_c5UH_grid_ifd.grid.0114.exr >> .../test1.hip_c5UH_grid_ifd.0114.exr 
+    """
     fd = FixDriver(driver)
     picture_name = fd.vmpicture.eval()
     if ('_%s_' % driver.name() in picture_name) \
          and ('.%s.' % driver.name() in picture_name):
-            fd.vmpicture.set(picture_name.replace( '.%s.' % driver.name(), '.' ))
+            raw_picture_name = fd.vmpicture.rawValue()
+            fd.vmpicture.set( raw_picture_name.replace('.$OS.','.') )
 
 
 
@@ -218,31 +254,8 @@ def main():
     if driver.parm("vm_writecheckpoint"):
         driver.parm("vm_writecheckpoint").set(0)
 
-    # Change ROP to save IFD to disk:
-    if driver.type().name() in ('ifd', "baketexture", 'baketexture::3.0') and options.generate_ifds:
-        driver.parm("soho_outputmode").set(1)
-        scene_path, scene_name = os.path.split(hou.hipFile.name())
-        scene_name, ext = os.path.splitext(scene_name)
-        ifd_name = os.path.join(options.ifd_path, scene_name + ".$F.ifd")
-        driver.parm('soho_diskfile').set(ifd_name)
-
-        if options.ifd_name:
-            ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.ifd")
-            ifd_name = os.path.expandvars(ifd_name)
-            driver.parm('soho_diskfile').set(ifd_name)
-
-    #Redshift pass:
-    if driver.type().name() == 'Redshift_ROP' and options.generate_ifds:
-        driver.parm("RS_archive_enable").set(1)
-        scene_path, scene_name = os.path.split(hou.hipFile.name())
-        scene_name, ext = os.path.splitext(scene_name)
-        # (should we use scratch or ifd_path for rs?)
-        rs_name = os.path.join(options.ifd_path, scene_name + ".$F.rs")
-        driver.parm('RS_archive_file').set(rs_name)
-
-        if options.ifd_name:
-            ifd_name = os.path.join(options.ifd_path, options.ifd_name + ".$F.rs")
-            driver.parm('RS_archive_file').set(ifd_name)
+    if options.generate_ifds:
+        set_generate_ifd(driver, options)
 
     fix_driver_vmpicture(driver)
 
