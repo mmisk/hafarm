@@ -24,7 +24,7 @@ class BatchBase(HaGraphItem):
         self.parms['req_resources'] = ''
         self.parms['start_frame'] = 1
         self.parms['end_frame'] = 1
-        self.parms['job_name'] = kwargs.get('job_name', self._generate_unique_job_name())
+        self.parms['job_name'] = kwargs.get('job_name', self._generate_unique_job_name(self.name))
 
     def _generate_unique_job_name(self, name = 'no_name_job'):
         """Returns unique name for a job. 'Name' is usually a scene file. 
