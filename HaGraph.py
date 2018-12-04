@@ -85,14 +85,14 @@ class HaGraphItem(object):
     def copy_scene_file(self, **kwargs):
         """Makes a copy of a scene file.
         """
-        scene_file = kwargs.get('scene_file', self.parms['scene_file'])
+        scene_file = kwargs.get('scene_file', str(self.parms['scene_file']))
         # TODO: Currenty scene file is copied into job script directory
         # We might want to customize it, along with the whole idea of
         # coping scene. 
         filename, ext  = os.path.splitext(scene_file)
         path           = os.path.expandvars(self.parms['script_path'])
-        new_scene_file = os.path.join(path, self.parms['job_name']) + ext
-        self.parms['scene_file'] = new_scene_file
+        new_scene_file = os.path.join(path, str(self.parms['job_name'])) + ext
+        self.parms['scene_file'] << { 'scene_file_fullpath': new_scene_file }
         error = None
 
         # We do either file copy or link copy. The latter one is less expensive

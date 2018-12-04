@@ -44,6 +44,9 @@ class ConstantItem(object):
     def __str__(self):
         return self.__repr__()
 
+    def __add__(self, lhs):
+        return self.__repr__() + lhs
+
     def __repr__(self):
         rendered = parms_jinja_template.render(self._data)
         parms = json.load(io.StringIO(str(rendered)))
