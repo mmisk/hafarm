@@ -263,7 +263,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
             self.parms['command_arg'] = ['-j', str(threads)]
 
         self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] << self.parms['job_name'] + "_" + name_prefix + "from" + self.hou_node.name() 
+        self.parms['job_name'] << { "job_basename": name_prefix + "from" + self.hou_node.name(), "jobname_hash": self.get_jobname_hash() }
         self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
