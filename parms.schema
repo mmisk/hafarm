@@ -1,4 +1,5 @@
 { 
      "command" : "{{ command }} {% if mantra_filter %} -P \"{{ mantra_filter }} {{ proxy }} {{ tiling }}\"{% endif %}"
-    ,"job_name" : "{% if job_basename %}{{ job_basename }}{% else %}no_name_job{% endif %}_{{ jobname_hash }}_{{ render_driver_name }}_{{ render_driver_type }}"
+    ,"job_name" : "{% if job_basename %}{{ job_basename }}{% else %}no_name_job{% endif %}_{{ jobname_hash }}_{{ render_driver_name }}_{{ render_driver_type }}{% if tiles %}_TILES{% endif %}{% if frame %}_frame{{ frame }}{% endif %}"
+    ,"scene_file" : "{% if scene_file_fullpath %}{{ scene_file_fullpath }}{% else %}{{ scene_file_path }}/{{ scene_file_basename }}_{{ scene_file_hash }}.@TASK_ID/>.{{ scene_file_ext }}{% endif %}"
 }
