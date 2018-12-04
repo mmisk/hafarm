@@ -62,7 +62,9 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
         self.parms['scene_file'] << { "scene_file_basename": self._scene_file }
-        self.parms['job_name'] << { "job_basename" : self._scene_file, "jobname_hash" : self.get_jobname_hash() }
+        self.parms['job_name'] << { "job_basename": self._scene_file
+                                    , "jobname_hash": self.get_jobname_hash()
+                                    , "render_driver_name": self.hou_node_type }
 
 
     def __iter__(self):
