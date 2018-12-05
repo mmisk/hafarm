@@ -197,7 +197,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
-            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
+            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
 
     def __iter__(self):
@@ -398,6 +398,9 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
                                             , start = self.parms['start_frame']
                                             , end = self.parms['end_frame']
                                         )
+        join_tiles_action.parms['job_name'] << self.parms['job_name'].data()
+        join_tiles_action.parms['job_name'] << { 'render_driver_type': 'merge' }
+
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
         self.index, join_tiles_action.index = join_tiles_action.index, self.index
         join_tiles_action.add( *mantra_instances )
