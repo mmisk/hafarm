@@ -182,7 +182,7 @@ class Slurm(RenderManager):
             return why
 
 
-    def render(self, parms):
+    def render(self, parms, dryrun=False):
         """ This will be called by any derived class, to submit the jobs to farm. 
         Any information are to be provided in HaFarmParms class kept in self.parms
         variable.
@@ -191,7 +191,8 @@ class Slurm(RenderManager):
         result = {}
         result['_create_job_script']      = self._create_job_script()
         result['_create_submit_command']  = self._create_submit_command()
-        result['_submit_job']             = self._submit_job()
+        if dryrun == False:
+            result['_submit_job']             = self._submit_job()
         return result
 
 
