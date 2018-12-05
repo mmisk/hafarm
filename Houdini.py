@@ -196,8 +196,8 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['job_name'] << { 'render_driver_type' : 'redshift' }
 
         if 'ifd_hash' in kwargs:
-            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] }
-            self.parms['job_name'] << { 'jobname_hash' : kwargs.get('ifd_hash') }
+            self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
+            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
 
     def __iter__(self):
@@ -245,7 +245,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_ifd'
-        self.parms['job_name'] << { 'jobname_hash' : kwargs.get('ifd_hash'), 'render_driver_type' : 'ifd' }
+        self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'], 'render_driver_type' : 'ifd' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
@@ -259,17 +259,14 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
         self._output_picture = kwargs.get('output_picture','')
-        # self._scene_file = kwargs.get('scene_file','')
         super(HoudiniMantraExistingIfdWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_render'
-        # name_prefix = kwargs.get('name_prefix','')
         threads = kwargs.get('mantra_slots')
         if self.parms['cpu_share'] != 1.0:
             self.parms['command_arg'] = ['-j', const.MAX_CORES]
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
-        # self.parms['scene_file'] = self._scene_file
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
         self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
@@ -280,7 +277,6 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
 
         if kwargs.get('render_exists_ifd'):
-            # self.parms['scene_file'] = kwargs.get('scene_file')
             self.parms['output_picture'] = kwargs.get('output_picture')
 
 
@@ -330,8 +326,8 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self.parms['job_name'] << { 'render_driver_type' : 'mantra' }
 
         if 'ifd_hash' in kwargs:
-            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] }
             self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
+            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
 
     def get_step_frame(self):
