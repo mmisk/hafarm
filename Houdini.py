@@ -370,7 +370,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
 
     def _frames_render(self):
-        self.parms['job_name'] << { "frame" : self._slices[self._slice_idx] }
+        self.parms['job_name'] << { "frame": self._slices[self._slice_idx] }
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
 
         for k, m in houdini_dependencies.iteritems():
