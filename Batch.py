@@ -28,6 +28,9 @@ class BatchBase(HaGraphItem):
         if 'job_data' in kwargs:
             self.parms['job_name'] << kwargs['job_data']
 
+    def copy_scene_file(self):
+        pass
+
 
 class BatchMp4(BatchBase):
     def __init__(self, filename, *args, **kwargs):
@@ -124,7 +127,7 @@ class BatchJoinTiles(BatchBase):
         tags = '/hafarm/merge_tiles'
         super(BatchJoinTiles, self).__init__(name, tags, *args, **kwargs)
         self.parms['output_picture'] = filename
-        self.parms['scene_file'] = mask_filename
+        self.parms['scene_file'] << mask_filename
         self.parms['priority'] = priority
         self.parms['slots'] = 0
         self.parms['start_frame'] = kwargs.get('start',1)
@@ -133,13 +136,12 @@ class BatchJoinTiles(BatchBase):
         start = kwargs.get('start', 1)
         end = kwargs.get('end', 1)
         self.parms['job_name'] << { 'render_driver_type': 'merge' }
-        self.parms['command_arg'] = [
-                                        '-x %s' % tiles_x 
+        self.parms['command_arg'] = [    '-x %s' % tiles_x 
                                         ,'-y %s' % tiles_y 
                                         ,'-f %s' % const.TASK_ID 
                                         ,'-o %s' % filename
-                                        ,'-m %s' % mask_filename
-                                ]
+                                        ,'-m %s' % self.parms['scene_file']
+                                    ]
                                 
         self.parms['command'] << {'command': 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py' }
 

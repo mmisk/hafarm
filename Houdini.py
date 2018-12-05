@@ -195,7 +195,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['job_name'] << { 'render_driver_type' : 'redshift' }
 
         if 'ifd_hash' in kwargs:
-            self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
+            self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
             self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
 
@@ -244,7 +244,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_ifd'
-        self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'], 'render_driver_type' : 'ifd' }
+        self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'], 'render_driver_type': 'ifd' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
@@ -267,7 +267,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
             self.parms['command_arg'] = ['-j', str(threads)]
 
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
-        self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
+        self.parms['command'] << { 'command': '$HFS/bin/mantra' }
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
         self.parms['req_license'] = 'mantra_lic=1'
@@ -321,11 +321,11 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             self.parms['scene_file'] << { 'scene_file_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
 
-        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': '.ifd' }
+        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'], 'scene_file_ext': '.ifd' }
         self.parms['job_name'] << { 'render_driver_type' : 'mantra' }
 
         if 'ifd_hash' in kwargs:
-            self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
+            self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
             self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
 
@@ -380,14 +380,16 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
     def _tile_post_render(self):
         '''Generates merge job with general BatchFarm class for joining tiles.'''
-        self.parms['job_name'] << { 'tiles' : True }
         post_renders = []
         TILES_SUFFIX = "_tile%02d_"
         
         filepath, padding, ext = self.parms['output_picture'].rsplit('.',2)
-        mask_filename = '.'.join([filepath + TILES_SUFFIX, '%s', ext])
+        path, basename = os.path.split(filepath)
+
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
         output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
         self.parms['output_picture'] = output_picture
+        self.parms['job_name'] << { 'tiles' : True }
 
         join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
                                             , self._tiles_x, self._tiles_y
