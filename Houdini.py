@@ -111,7 +111,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         post_renders = []
 
         debug_render = BatchDebug( self.parms['output_picture']
-                                    , job_name = self.parms['job_name']
+                                    , job_data = self.parms['job_name'].data()
                                     , start = self.parms['start_frame']
                                     , end = self.parms['end_frame'] )
         debug_render.add(self)
@@ -120,7 +120,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
         
         merger = BatchReportsMerger( self.parms['output_picture']
-                                        , job_name = self.parms['job_name'] + "_merge"
+                                        , job_data = self.parms['job_name'].data()
                                         , ifd_path = ifd_path
                                         , resend_frames = self._resend_frames )
         merger.add(debug_render)
@@ -389,7 +389,9 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mask_filename = '.'.join([filepath + TILES_SUFFIX, '%s', ext])
         output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
         self.parms['output_picture'] = output_picture
+
         
+
         join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
                                             , self._tiles_x, self._tiles_y
                                             , mask_filename
@@ -397,9 +399,8 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
                                             , make_proxy = self._make_proxy 
                                             , start = self.parms['start_frame']
                                             , end = self.parms['end_frame']
+                                            , job_data = self.parms['job_name'].data()
                                         )
-        join_tiles_action.parms['job_name'] << self.parms['job_name'].data()
-        join_tiles_action.parms['job_name'] << { 'render_driver_type': 'merge' }
 
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
         self.index, join_tiles_action.index = join_tiles_action.index, self.index

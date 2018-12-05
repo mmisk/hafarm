@@ -25,7 +25,8 @@ class BatchBase(HaGraphItem):
         self.parms['start_frame'] = 1
         self.parms['end_frame'] = 1
         self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash() }
-
+        if 'job_data' in kwargs:
+            self.parms['job_name'] << kwargs['job_data']
 
 
 class BatchMp4(BatchBase):
@@ -40,6 +41,7 @@ class BatchMp4(BatchBase):
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
         self.parms['command'] << {'command': 'ffmpeg '}
+        self.parms['job_name'] << { 'render_driver_type': 'mp4' }
 
 
 
@@ -65,6 +67,8 @@ class BatchDebug(BatchBase):
         self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
         self.parms['frame_padding_length'] = int(frame_padding_length)
+        self.parms['job_name'] << { 'render_driver_type': 'debug' }
+
 
 
 
@@ -94,6 +98,7 @@ class BatchReportsMerger(BatchBase):
         path, filename = os.path.split(filename)
         scene_file_path, _, _, _ = utils.padding(filename, 'shell')
         log_path = os.path.join(path, const.DEBUG_POSTFIX)
+        self.parms['job_name'] << { 'render_driver_type': 'reports' }
         self.parms['scene_file'] << { 'scene_file_path': log_path, 'scene_file_basename': scene_file_path, 'scene_file_ext': 'json' }
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email,
                      ifd_path,
@@ -127,7 +132,7 @@ class BatchJoinTiles(BatchBase):
         self.parms['make_proxy'] = kwargs.get('make_proxy', False)
         start = kwargs.get('start', 1)
         end = kwargs.get('end', 1)
-        
+        self.parms['job_name'] << { 'render_driver_type': 'merge' }
         self.parms['command_arg'] = [
                                         '-x %s' % tiles_x 
                                         ,'-y %s' % tiles_y 
