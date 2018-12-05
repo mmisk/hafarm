@@ -16,7 +16,6 @@ from Batch import BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
 from uuid import uuid4
 
 import HaGraph
-reload(HaGraph)
 from HaGraph import HaGraph
 from HaGraph import HaGraphItem
 
