@@ -95,7 +95,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
     def _proxy_post_render(self):
         post_renders = []
-        self.parms['command'] << {'proxy':' --proxy '}
+        self.parms['command'] << {'proxy': ' --proxy '}
 
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
@@ -135,7 +135,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
         use_frame_list = kwargs.get('use_frame_list')
         self.hbatch_slots = kwargs.get('hbatch_slots')
 
-        self.parms['command'] << {'command' : '$HFS/bin/hython'}
+        self.parms['command'] << { 'command': '$HFS/bin/hython' }
         self.parms['command_arg'] = [kwargs.get('command_arg')]
         self.parms['req_license'] = 'hbatch_lic=1' 
         self.parms['req_resources'] = 'procslots=%s' % self.hbatch_slots
@@ -170,7 +170,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] << { 'jobname_hash' : kwargs.get('ifd_hash'), 'render_driver_type' : 'rs' }
+        self.parms['job_name'] << { 'jobname_hash': kwargs.get('ifd_hash'), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
@@ -191,7 +191,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': '.rs' }
-        self.parms['job_name'] << { 'render_driver_type' : 'redshift' }
+        self.parms['job_name'] << { 'render_driver_type': 'redshift' }
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
@@ -321,7 +321,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             self.parms['output_picture'] = kwargs.get('output_picture')
 
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'], 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type' : 'mantra' }
+        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
