@@ -151,8 +151,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = []
-        command_arg += [ "--ignore_tiles", "--generate_ifds" ]
+        command_arg = [ "--ignore_tiles", "--generate_ifds" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
