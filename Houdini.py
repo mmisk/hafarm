@@ -331,7 +331,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
         if 'ifd_hash' in kwargs:
             self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] }
-            self.parms['job_name'] << { 'jobname_hash' : kwargs.get('ifd_hash') }
+            self.parms['job_name'] << { 'jobname_hash' : kwargs['ifd_hash'] }
 
 
     def get_step_frame(self):
