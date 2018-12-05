@@ -47,6 +47,9 @@ class ConstantItem(object):
     def __add__(self, lhs):
         return self.__repr__() + lhs
 
+    def data(self):
+        return self._data.copy()
+
     def clone(self):
         ret = ConstantItem(self._name)
         ret << self._data
