@@ -173,12 +173,12 @@ class HaGraph(object):
         for k, item in graph_items.iteritems():
             item.parms['submission_time'] = time()
             _db = {}
-            _db['inputs'] = [ graph_items[x].parms['job_name'] for x in item.dependencies ]
+            _db['inputs'] = [ str(graph_items[x].parms['job_name']) for x in item.dependencies ]
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'JsonParmRender'
             _db['parms'] = item.parms
             parms_file = os.path.expandvars(item.parms['script_path'])
-            parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'
+            parms_file = os.path.join(parms_file, str(item.parms['job_name'])) + '.json'
             with open(parms_file, 'w') as file:
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)
 
