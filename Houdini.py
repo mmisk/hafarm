@@ -390,8 +390,6 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
         self.parms['output_picture'] = output_picture
 
-        
-
         join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
                                             , self._tiles_x, self._tiles_y
                                             , mask_filename
