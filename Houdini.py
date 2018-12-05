@@ -16,6 +16,7 @@ from Batch import BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
 from uuid import uuid4
 
 import HaGraph
+reload(HaGraph)
 from HaGraph import HaGraph
 from HaGraph import HaGraphItem
 
@@ -61,10 +62,15 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
-        self.parms['scene_file'] << { "scene_file_basename": self._scene_file }
-        self.parms['job_name'] << { "job_basename": self._scene_file
+        path, filepath = os.path.split(self._scene_file)
+        basename, ext = os.path.splitext(filepath)
+        self.parms['scene_file'] << { "scene_file_path": path
+                                        ,"scene_file_basename": basename
+                                        ,"scene_file_ext": ext}
+        self.parms['job_name'] << { "job_basename": basename
                                     , "jobname_hash": self.get_jobname_hash()
-                                    , "render_driver_name": self.hou_node_type }
+                                    , "render_driver_type": self.hou_node_type
+                                    , "render_driver_name": self.hou_node.name() }
 
 
     def __iter__(self):
@@ -187,7 +193,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': 'rs' }
+        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': '.rs' }
         self.parms['job_name'] << { 'render_driver_type' : 'redshift' }
 
         if 'ifd_hash' in kwargs:
@@ -252,18 +258,18 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
         self._output_picture = kwargs.get('output_picture','')
-        self._scene_file = kwargs.get('scene_file','')
+        # self._scene_file = kwargs.get('scene_file','')
         super(HoudiniMantraExistingIfdWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_render'
-        name_prefix = kwargs.get('name_prefix','')
+        # name_prefix = kwargs.get('name_prefix','')
         threads = kwargs.get('mantra_slots')
         if self.parms['cpu_share'] != 1.0:
             self.parms['command_arg'] = ['-j', const.MAX_CORES]
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
-        self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] << { "job_basename": name_prefix + "from" + self.hou_node.name(), "jobname_hash": self.get_jobname_hash() }
+        # self.parms['scene_file'] = self._scene_file
+        self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
         self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
@@ -273,7 +279,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
 
         if kwargs.get('render_exists_ifd'):
-            self.parms['scene_file'] = kwargs.get('scene_file')
+            # self.parms['scene_file'] = kwargs.get('scene_file')
             self.parms['output_picture'] = kwargs.get('output_picture')
 
 
@@ -319,7 +325,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             self.parms['scene_file'] << { 'scene_file_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
 
-        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': 'rs' }
+        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'],  'scene_file_ext': '.ifd' }
         self.parms['job_name'] << { 'render_driver_type' : 'mantra' }
 
         if 'ifd_hash' in kwargs:
