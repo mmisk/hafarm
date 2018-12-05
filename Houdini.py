@@ -458,9 +458,9 @@ class HoudiniCompositeWrapper(HbatchWrapper):
 class HoudiniWrapper(type):
     """docstring for HaHoudiniWrapper"""
     def __new__(cls, name, *args, **kwargs):
-        hou_drivers = {   'ifd' : HoudiniMantraWrapper
-                        , 'baketexture' :  HoudiniBaketexture
-                        , 'baketexture::3.0' :  HoudiniBaketexture30                        
+        hou_drivers = {   'ifd': HoudiniMantraWrapper
+                        , 'baketexture':  HoudiniBaketexture
+                        , 'baketexture::3.0':  HoudiniBaketexture30                        
                         , 'alembic': HoudiniAlembicWrapper
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
