@@ -66,7 +66,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         basename, ext = os.path.splitext(filepath)
         self.parms['scene_file'] << { "scene_file_path": path
                                         ,"scene_file_basename": basename
-                                        ,"scene_file_ext": ext}
+                                        ,"scene_file_ext": ext }
         self.parms['job_name'] << { "job_basename": basename
                                     , "jobname_hash": self.get_jobname_hash()
                                     , "render_driver_type": self.hou_node_type
@@ -100,7 +100,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
-                                          , job_name = self.parms['job_name'] + "_mp4")
+                                          , job_data = self.parms['job_name'].data())
             make_movie_action.add(self)
             post_renders += [ make_movie_action ]
 
