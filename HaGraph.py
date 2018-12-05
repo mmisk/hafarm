@@ -183,6 +183,6 @@ class HaGraph(object):
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)
 
         render = self.RenderCls(graph_items)
-        render.render()
+        render.render(**kwargs)
 
 
