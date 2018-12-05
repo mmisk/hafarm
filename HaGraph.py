@@ -91,10 +91,10 @@ class HaGraphItem(object):
         # coping scene. 
         filename, ext  = os.path.splitext(scene_file)
         path           = os.path.expandvars(self.parms['script_path'])
-        new_scene_file = os.path.join(path, str(self.parms['job_name'])) + ext
-        self.parms['scene_file'] << { 'scene_file_fullpath': new_scene_file }
+        self.parms['scene_file'] << { 'scene_file_path': path, 'scene_file_basename': str(self.parms['job_name']), 'scene_file_ext': ext }
         error = None
-
+        new_scene_file = os.path.join(path, str(self.parms['job_name'])) + ext
+       
         # We do either file copy or link copy. The latter one is less expensive
         # but less safe also, as we do use render cache as backup history from
         # time to time... :/
