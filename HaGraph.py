@@ -169,6 +169,10 @@ class HaGraph(object):
 
         
     def render(self, **kwargs):
+        '''
+            Kwargs:
+                json_output_directory
+        '''
         graph_items = {}
         for x in self.graph_items:
             x.copy_scene_file()
@@ -184,14 +188,15 @@ class HaGraph(object):
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'HaGraph'
             _db['parms'] = item.parms
-            parms_file = os.path.expandvars(item.parms['script_path'])
+            parms_file = kwargs.get( 'json_output_directory' , os.path.expandvars(item.parms['script_path']) )
             parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'
             json_files += [ parms_file ]
             with open(parms_file, 'w') as file:
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)
 
-        render = self.RenderCls(graph_items)
-        render.render()
+        if self.RenderCls != None:
+            render = self.RenderCls(graph_items)
+            render.render()
 
         return list(set(json_files))
 
