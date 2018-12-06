@@ -1,7 +1,7 @@
 {
   "class_name": "BatchDebug", 
   "inputs": [
-    "testRenderPressed.hip_XXX6_box_teapot_mantra"
+    "testRenderPressed.hip_XXX7_box_teapot_mantra"
   ], 
   "parms": {
     "req_resources": "", 
@@ -29,15 +29,15 @@
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XXX6_box_teapot_debug", 
+    "job_name": "testRenderPressed.hip_XXX7_box_teapot_debug", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.855295, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XXX6_box_teapot_debug.exr", 
+    "submission_time": 1544107209.511494, 
+    "scene_file": "/tmp/render/testRenderPressed.box_teapot.@TASK_ID_PADDED/>.exr", 
     "ignore_check": true, 
     "job_current": "sandbox", 
     "req_license": "", 
@@ -45,7 +45,7 @@
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "", 
-    "command": "$HAFARM_HOME/scripts/debug_images.py --job testRenderPressed.hip_XXX6_box_teapot_debug --save_json -i  ", 
+    "command": "$HAFARM_HOME/scripts/debug_images.py --job testRenderPressed.hip_XXX7_box_teapot_mantra --save_json -i  ", 
     "pre_render_script": "mkdir -p /tmp/render/debug", 
     "job_on_hold": false, 
     "email_opt": "", 

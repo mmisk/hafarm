@@ -1,9 +1,6 @@
 {
-  "class_name": "HoudiniIFDWrapper", 
-  "inputs": [
-    "testRenderPressed.hip_XXX4_box", 
-    "testRenderPressed.hip_XX11_alembic"
-  ], 
+  "class_name": "HoudiniGeometryWrapper", 
+  "inputs": [], 
   "parms": {
     "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
@@ -24,36 +21,35 @@
     "hold_jid": [], 
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
-      "--ifd_name testRenderPressed.hip_XX13_grid", 
       "--ignore_tiles", 
       "--generate_ifds", 
-      "-d /out/grid"
+      "-d /out/box"
     ], 
     "step_frame": 8, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX13_grid_ifd", 
+    "job_name": "testRenderPressed.hip_XXX4_box_geometry", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
     "target_list": [
-      "/out/grid"
+      "/out/box"
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.851722, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX13_grid_ifd.hip", 
+    "submission_time": 1544107209.507726, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XXX4_box_geometry.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "req_license": "hbatch_lic=1", 
     "job_asset_name": "snazarenko", 
     "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
+    "output_picture": "/tmp/geo/testRenderPressed.box.1.bgeo.sc", 
     "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 

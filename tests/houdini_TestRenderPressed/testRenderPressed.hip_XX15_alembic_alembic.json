@@ -1,9 +1,6 @@
 {
-  "class_name": "HoudiniCompositeWrapper", 
-  "inputs": [
-    "testRenderPressed.hip_XXX6_box_teapot_mantra", 
-    "testRenderPressed.hip_XX13_grid_mantra"
-  ], 
+  "class_name": "HoudiniAlembicWrapper", 
+  "inputs": [], 
   "parms": {
     "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
@@ -26,33 +23,33 @@
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
       "--ignore_tiles", 
       "--generate_ifds", 
-      "-d /out/comp"
+      "-d /out/alembic"
     ], 
-    "step_frame": 8, 
+    "step_frame": 240, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX18_comp", 
+    "job_name": "testRenderPressed.hip_XX15_alembic_alembic", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
     "target_list": [
-      "/out/comp"
+      "/out/alembic"
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.852331, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX18_comp.hip", 
+    "submission_time": 1544106023.132258, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX15_alembic_alembic.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "req_license": "hbatch_lic=1", 
     "job_asset_name": "snazarenko", 
-    "end_frame": 10, 
+    "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "md", 
+    "output_picture": "/tmp/output.abc", 
     "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 

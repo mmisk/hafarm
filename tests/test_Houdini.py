@@ -417,10 +417,10 @@ class TestRenderPressed(unittest.TestCase):
 
         self.assertEqual(len(json_files), 4, 'incorrect count files')
 
-        json_expected_files = [  'testRenderPressed.hip_YYY2_box.json'
-                                ,'testRenderPressed.hip_YYY4_alembic.json'
-                                ,'testRenderPressed.hip_YYY6_grid_ifd.json'
-                                ,'testRenderPressed.hip_YYY6_grid_mantra.json' ]
+        json_expected_files = [ 'testRenderPressed.hip_YYY2_box_geometry.json'
+                                ,'testRenderPressed.hip_YYY4_alembic_alembic.json'
+                                ,'testRenderPressed.hip_YYY7_grid_ifd.json'
+                                ,'testRenderPressed.hip_YYY7_grid_mantra.json' ]
 
         json_expected_files.sort()
         self._test_files(json_expected_files, json_files)
@@ -441,23 +441,23 @@ class TestRenderPressed(unittest.TestCase):
 
         self.assertEqual(len(json_files), 17, 'incorrect count files')
 
-        json_expected_files = [ 'testRenderPressed.hip_XX11_alembic.json'
-            ,'testRenderPressed.hip_XX13_grid_ifd.json'
-            ,'testRenderPressed.hip_XX13_grid_debug.json'
-            ,'testRenderPressed.hip_XX13_grid_mantra.json'
-            ,'testRenderPressed.hip_XX13_grid_mp4.json'
-            ,'testRenderPressed.hip_XX13_grid_report.json'
-            ,'testRenderPressed.hip_XX18_comp_debug.json'
-            ,'testRenderPressed.hip_XX18_comp.json'
-            ,'testRenderPressed.hip_XX18_comp_mp4.json'
-            ,'testRenderPressed.hip_XX18_comp_report.json'
-            ,'testRenderPressed.hip_XXX2_teapot.json'
-            ,'testRenderPressed.hip_XXX4_box.json'
-            ,'testRenderPressed.hip_XXX6_box_teapot_ifd.json'
-            ,'testRenderPressed.hip_XXX6_box_teapot_debug.json'
-            ,'testRenderPressed.hip_XXX6_box_teapot_mantra.json'
-            ,'testRenderPressed.hip_XXX6_box_teapot_mp4.json'
-            ,'testRenderPressed.hip_XXX6_box_teapot_report.json' ]
+        json_expected_files = [ 'testRenderPressed.hip_XX15_alembic_alembic.json'
+                                ,'testRenderPressed.hip_XX18_grid_debug.json'
+                                ,'testRenderPressed.hip_XX18_grid_ifd.json'
+                                ,'testRenderPressed.hip_XX18_grid_mantra.json'
+                                ,'testRenderPressed.hip_XX18_grid_mp4.json'
+                                ,'testRenderPressed.hip_XX18_grid_reports.json'
+                                ,'testRenderPressed.hip_XX26_comp_comp.json'
+                                ,'testRenderPressed.hip_XX26_comp_debug.json'
+                                ,'testRenderPressed.hip_XX26_comp_mp4.json'
+                                ,'testRenderPressed.hip_XX26_comp_reports.json'
+                                ,'testRenderPressed.hip_XXX2_teapot_geometry.json'
+                                ,'testRenderPressed.hip_XXX4_box_geometry.json'
+                                ,'testRenderPressed.hip_XXX7_box_teapot_debug.json'
+                                ,'testRenderPressed.hip_XXX7_box_teapot_ifd.json'
+                                ,'testRenderPressed.hip_XXX7_box_teapot_mantra.json'
+                                ,'testRenderPressed.hip_XXX7_box_teapot_mp4.json'
+                                ,'testRenderPressed.hip_XXX7_box_teapot_reports.json' ]
     
         json_expected_files.sort()
         self._test_files(json_expected_files, json_files)
