@@ -1,8 +1,8 @@
 {
-  "class_name": "HbatchFarm", 
+  "class_name": "HoudiniIFDWrapper", 
   "inputs": [
-    "untitled.hip_dKgF_box", 
-    "untitled.hip_Rapy_alembic"
+    "testRenderPressed.hip_YYY2_box", 
+    "testRenderPressed.hip_YYY4_alembic"
   ], 
   "parms": {
     "req_resources": "procslots=0", 
@@ -14,29 +14,27 @@
     "job_asset_type": "user", 
     "frame_padding_length": 4, 
     "slots": 0, 
-    "max_running_tasks": 50, 
+    "max_running_tasks": 1000, 
     "req_tmpdir": 32, 
     "exclude_list": [], 
-    "group": "renders", 
+    "group": "", 
     "req_memory": 0, 
-    "hold_jid_ad": [
-      "untitled.hip_dKgF_box"
-    ], 
+    "hold_jid_ad": [], 
     "post_render_script": "", 
-    "hold_jid": [
-      "untitled.hip_Rapy_alembic"
-    ], 
+    "hold_jid": [], 
     "command_arg": [
-      "/home/snazarenko/packages/hafarm/1.0.0/platform-linux/arch-x86_64/os-CentOS_Linux-7/hafarm/scripts/houdini/harender.py", 
+      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
+      "--ifd_name testRenderPressed.hip_YYY6_grid", 
       "--ignore_tiles", 
-      "--generate_ifds"
+      "--generate_ifds", 
+      "-d /out/grid"
     ], 
     "step_frame": 8, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "untitled.hip_homr_grid", 
+    "job_name": "testRenderPressed.hip_YYY6_grid_ifd", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
@@ -47,20 +45,22 @@
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1540391339.7519, 
-    "scene_file": "untitled.hip", 
+    "submission_time": 1544098769.967215, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_YYY6_grid_ifd.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "req_license": "hbatch_lic=1", 
     "job_asset_name": "snazarenko", 
     "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "/home/snazarenko/render/untitled.grid.0001.exr", 
-    "command": "$HFS/bin/hython", 
+    "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
+    "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
+    "tile_x": 1, 
+    "tile_y": 1, 
     "frame_range_arg": [
       "-f %s %s -i %s", 
       "start_frame", 
@@ -68,5 +68,5 @@
       1
     ]
   }, 
-  "backend_name": "Slurm"
+  "backend_name": "HaGraph"
 }
