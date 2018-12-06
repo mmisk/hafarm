@@ -92,7 +92,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
         job_name = self.parms['job_name']
         if job_name.endswith("_mantra"):
-            job_name.replace("_mantra","")
+            job_name = job_name.replace("_mantra","")
 
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
@@ -108,7 +108,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
         job_name = self.parms['job_name']
         if job_name.endswith("_mantra"):
-            job_name.replace("_mantra","")
+            job_name = job_name.replace("_mantra","")
 
         debug_render = BatchDebug( self.parms['output_picture']
                                     , job_name = job_name + "_debug"
