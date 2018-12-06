@@ -1,8 +1,7 @@
 
 # TODO: There is a place for plugin to choose current context
 import Houdini
-# from hafarm import Houdini
-reload(Houdini)
+
 from Houdini import HaContextHoudini
 
 from HaGraph import HaGraphItem
