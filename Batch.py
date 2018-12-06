@@ -67,7 +67,7 @@ class BatchDebug(BatchBase):
         path, file = os.path.split(filename)
         path = os.path.join(path, const.DEBUG_POSTFIX)
         self.parms['pre_render_script'] = 'mkdir -p %s' % path
-        self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
+        self.parms['scene_file'] << { 'scene_fullpath' : scene_file_path + const.TASK_ID_PADDED + ext }
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
         self.parms['frame_padding_length'] = int(frame_padding_length)
         self.parms['job_name'] << { 'render_driver_type': 'debug' }
