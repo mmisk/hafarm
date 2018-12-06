@@ -10,6 +10,8 @@ import string
 import json
 from const import ConstantItemJSONEncoder
 
+
+
 class HaGraphDependency(list):
     _all_dependencies = {}
     def __init__(self, key, data=[], parent=None):
@@ -50,7 +52,8 @@ class HaGraphDependency(list):
 
 
 class HaGraphItem(object):
-    _slots = {}
+    _external_hashes = (lambda: [(yield x) for x in [] ])()
+
     def __init__(self, index, dependencies, name, path, tags, **kwargs):
         self.index = index
         self.dependencies = HaGraphDependency(index, dependencies, self)
@@ -116,6 +119,8 @@ class HaGraphItem(object):
 
 
     def get_jobname_hash(self):
+        for x in self._external_hashes:
+            return x
         return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(4))
 
 
@@ -164,25 +169,35 @@ class HaGraph(object):
 
         
     def render(self, **kwargs):
+        '''
+            Kwargs:
+                json_output_directory
+        '''
         graph_items = {}
         for x in self.graph_items:
             x.copy_scene_file()
             x.pre_schedule()
             graph_items.update( {x.index: x} )
 
+        json_files = []
+        
         for k, item in graph_items.iteritems():
             item.parms['submission_time'] = time()
             _db = {}
             _db['inputs'] = [ graph_items[x].parms['job_name'] for x in item.dependencies ]
             _db['class_name'] = item.__class__.__name__
-            _db['backend_name'] = 'JsonParmRender'
+            _db['backend_name'] = 'HaGraph'
             _db['parms'] = item.parms
-            parms_file = os.path.expandvars(item.parms['script_path'])
+            parms_file = kwargs.get( 'json_output_directory' , os.path.expandvars(item.parms['script_path']) )
             parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'
+            json_files += [ parms_file ]
             with open(parms_file, 'w') as file:
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)
 
-        render = self.RenderCls(graph_items)
-        render.render()
+        if self.RenderCls != None:
+            render = self.RenderCls(graph_items)
+            render.render()
+
+        return list(set(json_files))
 
 

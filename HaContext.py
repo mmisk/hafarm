@@ -5,6 +5,7 @@ import Houdini
 reload(Houdini)
 from Houdini import HaContextHoudini
 
+from HaGraph import HaGraphItem
 
 def plugin_property_(func):
     def wrapper_property_(instance, *args, **kwargs):
@@ -19,15 +20,10 @@ def plugin_property_(func):
 
 class HaContext(object):
     context_class = HaContextHoudini()
-    def __init__(self):
-        super(HaContext, self).__init__()
+    def __init__(self, external_hashes=[]):
+        HaGraphItem._external_hashes = (lambda: [(yield x) for x in external_hashes ])()
 
     @plugin_property_
     def get_graph(self, **kwargs):
         pass
 
-def render():
-    ctx = HaContext()
-    graph = ctx.get_graph()
-    for n in graph.graph_items:
-        print n.index

@@ -1,5 +1,5 @@
 {
-  "class_name": "HbatchFarm", 
+  "class_name": "HoudiniAlembicWrapper", 
   "inputs": [], 
   "parms": {
     "req_resources": "procslots=0", 
@@ -11,23 +11,26 @@
     "job_asset_type": "user", 
     "frame_padding_length": 4, 
     "slots": 0, 
-    "max_running_tasks": 50, 
+    "max_running_tasks": 1000, 
     "req_tmpdir": 32, 
     "exclude_list": [], 
-    "group": "renders", 
+    "group": "", 
     "req_memory": 0, 
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      "/home/snazarenko/packages/hafarm/1.0.0/platform-linux/arch-x86_64/os-CentOS_Linux-7/hafarm/scripts/houdini/harender.py"
+      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
+      "--ignore_tiles", 
+      "--generate_ifds", 
+      "-d /out/alembic"
     ], 
     "step_frame": 240, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "untitled.hip_Rapy_alembic", 
+    "job_name": "testRenderPressed.hip_XX11_alembic", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
@@ -38,20 +41,22 @@
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1540391339.720525, 
-    "scene_file": "untitled.hip", 
+    "submission_time": 1544101253.854132, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX11_alembic.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "req_license": "hbatch_lic=1", 
     "job_asset_name": "snazarenko", 
     "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "", 
-    "command": "$HFS/bin/hython", 
+    "output_picture": "/tmp/output.abc", 
+    "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
+    "tile_x": 1, 
+    "tile_y": 1, 
     "frame_range_arg": [
       "-f %s %s -i %s", 
       "start_frame", 
@@ -59,5 +64,5 @@
       1
     ]
   }, 
-  "backend_name": "Slurm"
+  "backend_name": "HaGraph"
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/python2.6
 import unittest
 import sys, os, tempfile
+import json
 
 # FIXME: Just Can't handle it. Studio installed version breaks tests. 
 # Tests with relative paths break while running cases because tested 
@@ -59,8 +60,7 @@ from hafarm import HaContext
 from hafarm import PrintRender
 from hafarm import GraphvizRender
 
-
-
+HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
 class TestMantraRenderFrameList(unittest.TestCase):
     def setUp(self):
@@ -339,6 +339,7 @@ class TestRenderPressed(unittest.TestCase):
             return node
 
         hou.hipFile.clear(suppress_save_prompt=True)
+        hou.hipFile.save('/tmp/testRenderPressed.hip')
         self.end_frame = 10
         n = hou.node('/out')
 
@@ -365,33 +366,109 @@ class TestRenderPressed(unittest.TestCase):
         self.grid.setNextInput(self.alembic)
         self.hafarm1.parm("group").set("renders")
 
+        self.TST_DIRECTORY = HAFARM_TEST_DIRECTORY + os.sep + 'houdini_TestRenderPressed'
+        self.longMessage = True
+        self.maxDiff = None
 
+
+    def _test_json(self, json_expected, json_actual):
+        tst_body = ['inputs']
+        expected, actual = {}, {}
+        expected = dict( [(x, json_expected[x]) for x in tst_body] )
+        actual = dict( [(x, json_actual[x]) for x in tst_body] )
+        self.assertDictEqual(expected, actual, "Expected %s != %s " %( json_expected["class_name"],  json_actual["class_name"]) )   
+        
+        expected, actual = {}, {}
+        tst_params = ['scene_file', 'command_arg', 'target_list', 'output_picture', 'job_name', 'command'] 
+        expected = dict( [(x, json_expected['parms'][x]) for x in tst_params] )
+        actual = dict( [(x, json_actual['parms'][x]) for x in tst_params] )
+        self.assertDictEqual(expected, actual, "Expected %s != %s " %( json_expected["class_name"],  json_actual["class_name"]))
+
+        return True
+
+
+    def _test_files(self, json_expected_files, json_files):
+        json_actual_names = [os.path.split(x)[1] for x in json_files]
+
+        self.assertListEqual(json_expected_files, json_actual_names, 'incorrect file names')
+
+        output_directory = os.path.split(json_files[0])[0]
+
+        for n in json_expected_files:
+            json_actual = {}
+            json_expected = {}
+
+            with open(output_directory + os.sep + n) as f:
+                json_actual = json.load(f)
+
+            with open(self.TST_DIRECTORY + os.sep + n ) as f:
+                json_expected = json.load(f)
+
+            self.assertEqual(self._test_json(json_expected, json_actual), True, n)
+
+    
     def test_Hafarm1(self):
+        tmppath = tempfile.mkdtemp(prefix='hafarm_hou_test_Hafarm1')
         hou.setPwd(self.hafarm1)
-        ctx = HaContext.HaContext()
+        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'Y'), xrange(1,90)))
         graph = ctx.get_graph()
-        graph.set_render(PrintRender.JsonParmRender)
-        json_files = graph.render()
+        json_files = graph.render(json_output_directory=tmppath)
+        json_files.sort()
+
+        self.assertEqual(len(json_files), 4, 'incorrect count files')
+
+        json_expected_files = [  'testRenderPressed.hip_YYY2_box.json'
+                                ,'testRenderPressed.hip_YYY4_alembic.json'
+                                ,'testRenderPressed.hip_YYY6_grid_ifd.json'
+                                ,'testRenderPressed.hip_YYY6_grid_mantra.json' ]
+
+        json_expected_files.sort()
+        self._test_files(json_expected_files, json_files)
+
         return True
 
 
     def test_Hafarm2(self):
+        tmppath = tempfile.mkdtemp(prefix='hafarm_hou_test_Hafarm2')
         self.root.parm("make_proxy").set(True)
         self.root.parm("make_movie").set(True)
         self.root.parm("debug_images").set(True)
         hou.setPwd(self.root)
-        ctx = HaContext.HaContext()
+        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'X'), xrange(1,90)))
         graph = ctx.get_graph()
-        graph.set_render(PrintRender.JsonParmRender)
-        # graph.set_render(GraphvizRender.GraphvizRender)
-        json_files = graph.render()
+        json_files = graph.render(json_output_directory=tmppath)
+        json_files.sort()
+
+        self.assertEqual(len(json_files), 17, 'incorrect count files')
+
+        json_expected_files = [ 'testRenderPressed.hip_XX11_alembic.json'
+            ,'testRenderPressed.hip_XX13_grid_ifd.json'
+            ,'testRenderPressed.hip_XX13_grid_debug.json'
+            ,'testRenderPressed.hip_XX13_grid_mantra.json'
+            ,'testRenderPressed.hip_XX13_grid_mp4.json'
+            ,'testRenderPressed.hip_XX13_grid_report.json'
+            ,'testRenderPressed.hip_XX18_comp_debug.json'
+            ,'testRenderPressed.hip_XX18_comp.json'
+            ,'testRenderPressed.hip_XX18_comp_mp4.json'
+            ,'testRenderPressed.hip_XX18_comp_report.json'
+            ,'testRenderPressed.hip_XXX2_teapot.json'
+            ,'testRenderPressed.hip_XXX4_box.json'
+            ,'testRenderPressed.hip_XXX6_box_teapot_ifd.json'
+            ,'testRenderPressed.hip_XXX6_box_teapot_debug.json'
+            ,'testRenderPressed.hip_XXX6_box_teapot_mantra.json'
+            ,'testRenderPressed.hip_XXX6_box_teapot_mp4.json'
+            ,'testRenderPressed.hip_XXX6_box_teapot_report.json' ]
+    
+        json_expected_files.sort()
+        self._test_files(json_expected_files, json_files)
+        
         return True
 
 
 
 #if __name__ == '__main__':
 def run():
-    for test in [TestRenderPressed,TestMantraRenderFromIfd, TestMantraRenderWithTilesRenderPressed]: # TestMantraRenderFromIfd, TestRenderPressed, TestMantraRenderWithTilesRenderPressed
+    for test in [TestRenderPressed]: # TestMantraRenderFromIfd, TestRenderPressed, TestMantraRenderWithTilesRenderPressed
          case = unittest.TestLoader().loadTestsFromTestCase(test)
          unittest.TextTestRunner(verbosity=3).run(case)
 run()
