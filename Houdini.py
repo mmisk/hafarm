@@ -317,7 +317,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
 
         if kwargs.get('render_exists_ifd'):
-            self.parms['scene_file'] << { 'scene_file_fullpath': kwargs.get('scene_file') }
+            self.parms['scene_file'] << { 'scene_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
 
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path'], 'scene_file_ext': '.ifd' }
