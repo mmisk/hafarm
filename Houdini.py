@@ -92,7 +92,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
-                                          , job_name = self.parms['job_name'] + "_mp4")
+                                          , job_name = self.parms['job_name'].replace("_mantra", "_mp4") )
             make_movie_action.add(self)
             post_renders += [ make_movie_action ]
 
@@ -112,7 +112,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
         
         merger = BatchReportsMerger( self.parms['output_picture']
-                                        , job_name = self.parms['job_name'] + "_merge"
+                                        , job_name = self.parms['job_name'].replace("_mantra", "_merge")
                                         , ifd_path = ifd_path
                                         , resend_frames = self._resend_frames )
         merger.add(debug_render)

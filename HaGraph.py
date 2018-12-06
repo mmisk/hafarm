@@ -58,6 +58,7 @@ class HaGraphItem(object):
         self.path = path
         self.tags = tags
         self.parms = HaFarmParms(initilize=True)
+        self._external_hashes = (lambda: [(yield x) for x in kwargs.get('external_hashes', []) ])()
 
 
     def add(self, *graph_items, **kwargs):
@@ -116,6 +117,8 @@ class HaGraphItem(object):
 
 
     def get_jobname_hash(self):
+        for x in self._external_hashes:
+            return x
         return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(4))
 
 
@@ -175,7 +178,7 @@ class HaGraph(object):
             _db = {}
             _db['inputs'] = [ graph_items[x].parms['job_name'] for x in item.dependencies ]
             _db['class_name'] = item.__class__.__name__
-            _db['backend_name'] = 'JsonParmRender'
+            _db['backend_name'] = 'HaGraph'
             _db['parms'] = item.parms
             parms_file = os.path.expandvars(item.parms['script_path'])
             parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'

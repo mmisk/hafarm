@@ -61,7 +61,6 @@ from hafarm import GraphvizRender
 
 
 
-
 class TestMantraRenderFrameList(unittest.TestCase):
     def setUp(self):
         hou.hipFile.clear()
@@ -339,6 +338,7 @@ class TestRenderPressed(unittest.TestCase):
             return node
 
         hou.hipFile.clear(suppress_save_prompt=True)
+        hou.hipFile.save('/tmp/testRenderPressed.hip')
         self.end_frame = 10
         n = hou.node('/out')
 
@@ -368,10 +368,13 @@ class TestRenderPressed(unittest.TestCase):
 
     def test_Hafarm1(self):
         hou.setPwd(self.hafarm1)
-        ctx = HaContext.HaContext()
+        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'Y'), xrange(1,90)))
         graph = ctx.get_graph()
         graph.set_render(PrintRender.JsonParmRender)
         json_files = graph.render()
+
+        assert len(json_files) == 4
+
         return True
 
 
@@ -380,18 +383,21 @@ class TestRenderPressed(unittest.TestCase):
         self.root.parm("make_movie").set(True)
         self.root.parm("debug_images").set(True)
         hou.setPwd(self.root)
-        ctx = HaContext.HaContext()
+        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'X'), xrange(1,90)))
         graph = ctx.get_graph()
         graph.set_render(PrintRender.JsonParmRender)
         # graph.set_render(GraphvizRender.GraphvizRender)
         json_files = graph.render()
+
+        assert len(json_files) == 12
+
         return True
 
 
 
 #if __name__ == '__main__':
 def run():
-    for test in [TestRenderPressed,TestMantraRenderFromIfd, TestMantraRenderWithTilesRenderPressed]: # TestMantraRenderFromIfd, TestRenderPressed, TestMantraRenderWithTilesRenderPressed
+    for test in [TestRenderPressed]: # TestMantraRenderFromIfd, TestRenderPressed, TestMantraRenderWithTilesRenderPressed
          case = unittest.TestLoader().loadTestsFromTestCase(test)
          unittest.TextTestRunner(verbosity=3).run(case)
 run()
