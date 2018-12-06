@@ -10,6 +10,8 @@ import string
 import json
 from const import ConstantItemJSONEncoder
 
+
+
 class HaGraphDependency(list):
     _all_dependencies = {}
     def __init__(self, key, data=[], parent=None):
@@ -50,7 +52,8 @@ class HaGraphDependency(list):
 
 
 class HaGraphItem(object):
-    _slots = {}
+    _external_hashes = (lambda: [(yield x) for x in [] ])()
+
     def __init__(self, index, dependencies, name, path, tags, **kwargs):
         self.index = index
         self.dependencies = HaGraphDependency(index, dependencies, self)
@@ -58,7 +61,6 @@ class HaGraphItem(object):
         self.path = path
         self.tags = tags
         self.parms = HaFarmParms(initilize=True)
-        self._external_hashes = (lambda: [(yield x) for x in kwargs.get('external_hashes', []) ])()
 
 
     def add(self, *graph_items, **kwargs):
@@ -173,6 +175,8 @@ class HaGraph(object):
             x.pre_schedule()
             graph_items.update( {x.index: x} )
 
+        json_files = []
+        
         for k, item in graph_items.iteritems():
             item.parms['submission_time'] = time()
             _db = {}
@@ -182,10 +186,13 @@ class HaGraph(object):
             _db['parms'] = item.parms
             parms_file = os.path.expandvars(item.parms['script_path'])
             parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'
+            json_files += [ parms_file ]
             with open(parms_file, 'w') as file:
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)
 
         render = self.RenderCls(graph_items)
         render.render()
+
+        return list(set(json_files))
 
 
