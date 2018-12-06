@@ -61,12 +61,12 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
-        path, filepath = os.path.split(self._scene_file)
-        basename, ext = os.path.splitext(filepath)
+        path, name = os.path.split(self._scene_file)
+        basename, ext = os.path.splitext(name)
         self.parms['scene_file'] << { "scene_file_path": path
-                                        ,"scene_file_basename": basename
+                                        ,"scene_file_basename": name
                                         ,"scene_file_ext": ext }
-        self.parms['job_name'] << { "job_basename": basename
+        self.parms['job_name'] << { "job_basename": name
                                     , "jobname_hash": self.get_jobname_hash()
                                     , "render_driver_type": self.hou_node_type
                                     , "render_driver_name": self.hou_node.name() }
