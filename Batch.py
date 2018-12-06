@@ -74,7 +74,6 @@ class BatchDebug(BatchBase):
 
 
 
-
 class BatchReportsMerger(BatchBase):
     """ Merges previously generated debug reports per frame, and do various things
         with that, send_emials, save on dist as json/html etc.
