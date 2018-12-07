@@ -1,7 +1,20 @@
 #!/usr/bin/python2.6
 import unittest
-import sys, os, tempfile
+import sys, os, tempfile, shutil
 import json
+from contextlib import contextmanager
+
+
+@contextmanager
+def tempdir(prefix):
+    dirpath = tempfile.mkdtemp(prefix=prefix)
+    try:
+        yield dirpath
+    except:
+        raise
+    shutil.rmtree(dirpath)
+
+
 
 # FIXME: Just Can't handle it. Studio installed version breaks tests. 
 # Tests with relative paths break while running cases because tested 
@@ -408,59 +421,59 @@ class TestRenderPressed(unittest.TestCase):
 
     
     def test_Hafarm1(self):
-        tmppath = tempfile.mkdtemp(prefix='hafarm_hou_test_Hafarm1')
-        hou.setPwd(self.hafarm1)
-        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'Y'), xrange(1,90)))
-        graph = ctx.get_graph()
-        json_files = graph.render(json_output_directory=tmppath)
-        json_files.sort()
+        with tempdir('hafarm_hou_test_Hafarm1') as tmppath:
+            hou.setPwd(self.hafarm1)
+            ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'Y'), xrange(1,90)))
+            graph = ctx.get_graph()
+            json_files = graph.render(json_output_directory=tmppath, copy_scene_file=True)
+            json_files.sort()
 
-        self.assertEqual(len(json_files), 4, 'incorrect count files')
+            self.assertEqual(len(json_files), 4, 'incorrect count files')
 
-        json_expected_files = [ 'testRenderPressed.hip_YYY2_box_geometry.json'
-                                ,'testRenderPressed.hip_YYY4_alembic_alembic.json'
-                                ,'testRenderPressed.hip_YYY7_grid_ifd.json'
-                                ,'testRenderPressed.hip_YYY7_grid_mantra.json' ]
+            json_expected_files = [ 'testRenderPressed.hip_YYY2_box_geometry.json'
+                                    ,'testRenderPressed.hip_YYY4_alembic_alembic.json'
+                                    ,'testRenderPressed.hip_YYY7_grid_ifd.json'
+                                    ,'testRenderPressed.hip_YYY7_grid_mantra.json' ]
 
-        json_expected_files.sort()
-        self._test_files(json_expected_files, json_files)
+            json_expected_files.sort()
+            self._test_files(json_expected_files, json_files)
 
         return True
 
 
     def test_Hafarm2(self):
-        tmppath = tempfile.mkdtemp(prefix='hafarm_hou_test_Hafarm2')
-        self.root.parm("make_proxy").set(True)
-        self.root.parm("make_movie").set(True)
-        self.root.parm("debug_images").set(True)
-        hou.setPwd(self.root)
-        ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'X'), xrange(1,90)))
-        graph = ctx.get_graph()
-        json_files = graph.render(json_output_directory=tmppath)
-        json_files.sort()
+        with tempdir('hafarm_hou_test_Hafarm2') as tmppath:
+            self.root.parm("make_proxy").set(True)
+            self.root.parm("make_movie").set(True)
+            self.root.parm("debug_images").set(True)
+            hou.setPwd(self.root)
+            ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'X'), xrange(1,90)))
+            graph = ctx.get_graph()
+            json_files = graph.render(json_output_directory=tmppath, copy_scene_file=True)
+            json_files.sort()
 
-        self.assertEqual(len(json_files), 17, 'incorrect count files')
+            self.assertEqual(len(json_files), 17, 'incorrect count files')
 
-        json_expected_files = [ 'testRenderPressed.hip_XX15_alembic_alembic.json'
-                                ,'testRenderPressed.hip_XX18_grid_debug.json'
-                                ,'testRenderPressed.hip_XX18_grid_ifd.json'
-                                ,'testRenderPressed.hip_XX18_grid_mantra.json'
-                                ,'testRenderPressed.hip_XX18_grid_mp4.json'
-                                ,'testRenderPressed.hip_XX18_grid_reports.json'
-                                ,'testRenderPressed.hip_XX26_comp_comp.json'
-                                ,'testRenderPressed.hip_XX26_comp_debug.json'
-                                ,'testRenderPressed.hip_XX26_comp_mp4.json'
-                                ,'testRenderPressed.hip_XX26_comp_reports.json'
-                                ,'testRenderPressed.hip_XXX2_teapot_geometry.json'
-                                ,'testRenderPressed.hip_XXX4_box_geometry.json'
-                                ,'testRenderPressed.hip_XXX7_box_teapot_debug.json'
-                                ,'testRenderPressed.hip_XXX7_box_teapot_ifd.json'
-                                ,'testRenderPressed.hip_XXX7_box_teapot_mantra.json'
-                                ,'testRenderPressed.hip_XXX7_box_teapot_mp4.json'
-                                ,'testRenderPressed.hip_XXX7_box_teapot_reports.json' ]
-    
-        json_expected_files.sort()
-        self._test_files(json_expected_files, json_files)
+            json_expected_files = [ 'testRenderPressed.hip_XX15_alembic_alembic.json'
+                                    ,'testRenderPressed.hip_XX18_grid_debug.json'
+                                    ,'testRenderPressed.hip_XX18_grid_ifd.json'
+                                    ,'testRenderPressed.hip_XX18_grid_mantra.json'
+                                    ,'testRenderPressed.hip_XX18_grid_mp4.json'
+                                    ,'testRenderPressed.hip_XX18_grid_reports.json'
+                                    ,'testRenderPressed.hip_XX26_comp_comp.json'
+                                    ,'testRenderPressed.hip_XX26_comp_debug.json'
+                                    ,'testRenderPressed.hip_XX26_comp_mp4.json'
+                                    ,'testRenderPressed.hip_XX26_comp_reports.json'
+                                    ,'testRenderPressed.hip_XXX2_teapot_geometry.json'
+                                    ,'testRenderPressed.hip_XXX4_box_geometry.json'
+                                    ,'testRenderPressed.hip_XXX7_box_teapot_debug.json'
+                                    ,'testRenderPressed.hip_XXX7_box_teapot_ifd.json'
+                                    ,'testRenderPressed.hip_XXX7_box_teapot_mantra.json'
+                                    ,'testRenderPressed.hip_XXX7_box_teapot_mp4.json'
+                                    ,'testRenderPressed.hip_XXX7_box_teapot_reports.json' ]
+        
+            json_expected_files.sort()
+            self._test_files(json_expected_files, json_files)
         
         return True
 
