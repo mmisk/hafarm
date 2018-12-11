@@ -28,6 +28,7 @@
 #SBATCH -p {{ queue }}
 {%- endif %}
 
+HAFARM_VERSION=v0.3.1
 OUTPUT_PICTURE="{{ output_picture }}"
 echo Job start: `date`
 echo Machine name: ${HOSTNAME}

@@ -24,15 +24,12 @@ class BatchBase(HaGraphItem):
         self.parms['req_resources'] = ''
         self.parms['start_frame'] = 1
         self.parms['end_frame'] = 1
-        self.parms['job_name'] = kwargs.get('job_name', self._generate_unique_job_name(self.name))
+        self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash() }
+        if 'job_data' in kwargs:
+            self.parms['job_name'] << kwargs['job_data']
 
-    def _generate_unique_job_name(self, name = 'no_name_job'):
-        """Returns unique name for a job. 'Name' is usually a scene file. 
-        """
-        from base64 import urlsafe_b64encode
-        name = os.path.basename(name)
-        return '_'.join([os.path.split(name)[1], urlsafe_b64encode(os.urandom(3))])
-
+    def copy_scene_file(self):
+        pass
 
 
 class BatchMp4(BatchBase):
@@ -47,6 +44,7 @@ class BatchMp4(BatchBase):
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
         self.parms['command'] << {'command': 'ffmpeg '}
+        self.parms['job_name'] << { 'render_driver_type': 'mp4' }
 
 
 
@@ -69,9 +67,10 @@ class BatchDebug(BatchBase):
         path, file = os.path.split(filename)
         path = os.path.join(path, const.DEBUG_POSTFIX)
         self.parms['pre_render_script'] = 'mkdir -p %s' % path
-        self.parms['scene_file'] = scene_file_path + const.TASK_ID_PADDED + ext
+        self.parms['scene_file'] << { 'scene_fullpath' : scene_file_path + const.TASK_ID_PADDED + ext }
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
         self.parms['frame_padding_length'] = int(frame_padding_length)
+        self.parms['job_name'] << { 'render_driver_type': 'debug' }
 
 
 
@@ -101,7 +100,8 @@ class BatchReportsMerger(BatchBase):
         path, filename = os.path.split(filename)
         scene_file_path, _, _, _ = utils.padding(filename, 'shell')
         log_path = os.path.join(path, const.DEBUG_POSTFIX)
-        self.parms['scene_file'] = os.path.join(log_path, scene_file_path) + '.json'
+        self.parms['job_name'] << { 'render_driver_type': 'reports' }
+        self.parms['scene_file'] << { 'scene_file_path': log_path, 'scene_file_basename': scene_file_path, 'scene_file_ext': 'json' }
         self.parms['command'] << {'command': '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email,
                      ifd_path,
                      resend_frames,
@@ -126,7 +126,7 @@ class BatchJoinTiles(BatchBase):
         tags = '/hafarm/merge_tiles'
         super(BatchJoinTiles, self).__init__(name, tags, *args, **kwargs)
         self.parms['output_picture'] = filename
-        self.parms['scene_file'] = mask_filename
+        self.parms['scene_file'] << mask_filename
         self.parms['priority'] = priority
         self.parms['slots'] = 0
         self.parms['start_frame'] = kwargs.get('start',1)
@@ -134,14 +134,13 @@ class BatchJoinTiles(BatchBase):
         self.parms['make_proxy'] = kwargs.get('make_proxy', False)
         start = kwargs.get('start', 1)
         end = kwargs.get('end', 1)
-        
-        self.parms['command_arg'] = [
-                                        '-x %s' % tiles_x 
+        self.parms['job_name'] << { 'render_driver_type': 'merge' }
+        self.parms['command_arg'] = [    '-x %s' % tiles_x 
                                         ,'-y %s' % tiles_y 
                                         ,'-f %s' % const.TASK_ID 
                                         ,'-o %s' % filename
-                                        ,'-m %s' % mask_filename
-                                ]
+                                        ,'-m %s' % self.parms['scene_file']
+                                    ]
                                 
         self.parms['command'] << {'command': 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py' }
 

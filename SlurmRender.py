@@ -7,7 +7,7 @@ class SlurmRender(object):
         super(SlurmRender, self).__init__()
         self.hagraphitems_lst = hagraphitems_lst
 
-    def render(self):
+    def render(self, dryrun=False):
         for k, n in self.hagraphitems_lst.iteritems():
             for i in n.dependencies:
                 item = self.hagraphitems_lst[i]
@@ -24,4 +24,4 @@ class SlurmRender(object):
                 items_idx.remove(idx)
                 cycle_items_idx = cycle(items_idx)
                 items_idx_sended += [idx]
-                slurm_obj.render(item.parms)
+                slurm_obj.render(item.parms,dryrun=dryrun)

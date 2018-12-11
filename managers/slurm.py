@@ -77,7 +77,7 @@ class Slurm(RenderManager):
         # command_arg = " ".join(arg for arg in self.parms['command_arg'])
                 
         # FIXME: Change hafarm specific variables for SGE once. Currently we do it manually. 
-        scene_file = self.parms['scene_file'].replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
+        scene_file = str(self.parms['scene_file']).replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
 
         # There are cases where TASK_ID should be padded. 
         # TODO: I don't know how to specify padding length thought atm
@@ -112,7 +112,7 @@ class Slurm(RenderManager):
 
         cmd = str(self.parms['command'])
         self.parms['command'] = os.path.expandvars(cmd)
-        self.parms['scene_file'] = scene_file
+        self.parms['scene_file'] << { 'scene_file_fullpath': scene_file }
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
 
         slurm_template = None
@@ -142,7 +142,7 @@ class Slurm(RenderManager):
         workdir     = '-D %s'    % os.path.expandvars(self.parms['log_path'])
        
 
-               # This should be clean uped. Either all with flag names or none. 
+        # This should be clean uped. Either all with flag names or none. 
         arguments = ['sbatch']
         arguments += ["-J %s" % self.parms['job_name'], '--export=ALL', workdir, stdout, stderr, script_path]
 
@@ -182,7 +182,7 @@ class Slurm(RenderManager):
             return why
 
 
-    def render(self, parms):
+    def render(self, parms, dryrun=False):
         """ This will be called by any derived class, to submit the jobs to farm. 
         Any information are to be provided in HaFarmParms class kept in self.parms
         variable.
@@ -191,7 +191,8 @@ class Slurm(RenderManager):
         result = {}
         result['_create_job_script']      = self._create_job_script()
         result['_create_submit_command']  = self._create_submit_command()
-        result['_submit_job']             = self._submit_job()
+        if dryrun == False:
+            result['_submit_job']             = self._submit_job()
         return result
 
 

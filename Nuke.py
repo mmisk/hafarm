@@ -11,12 +11,40 @@ from uuid import uuid4
 import utils
 from HaGraph import HaGraph
 from HaGraph import HaGraphItem
-from hafarm import GraphvizRender
 from hafarm import SlurmRender
 
-class NukeWrapper(HaGraphItem):
 
-    def __init__(self, global_param_knob, *args, **kwargs):
+
+class HaContextNuke(object):
+    def _get_graph(self, **kwargs):
+        job = os.getenv('JOB_CURRENT', 'none')
+        nuke.scriptSave()
+        graph = HaGraph()
+        if not 'target_list' in kwargs:
+            kwargs['target_list'] = [x.name() for x in self._write_node_list() ]
+
+        if not 'output_picture' in kwargs:
+            kwargs['output_picture'] = str(nuke.root().node(kwargs['target_list'][0]).knob('file').getEvaluatedValue())
+
+        graph.add_node(NukeWrapper(**kwargs))
+        return graph
+
+
+    def _queue_list(self):
+        return ('3d', 'nuke', 'turbo_nuke', 'dev')
+
+    
+    def _group_list(self):
+        return ('allhosts', 'grafika', 'render', 'old_intel', 'new_intel')
+
+
+    def _write_node_list(self):
+        return  [ node for node in nuke.root().selectedNodes() if node.Class() in ('Write',) ]
+
+
+
+class NukeWrapper(HaGraphItem):
+    def __init__(self, *args, **kwargs):
         index, name = str(uuid4()), 'nuke'
         tags, path = ('/nuke/farm', '')
         dependencies = []
@@ -24,62 +52,87 @@ class NukeWrapper(HaGraphItem):
         version = str(nuke.NUKE_VERSION_MAJOR) + '.' + str(nuke.NUKE_VERSION_MINOR)
         self.parms['command'] << {'command': 'Nuke%s' % version}
         self.parms['command_arg'] = ['-x -V ']
-        self.parms['scene_file'] = str(nuke.root().name())
-        self.parms['job_name'] = self.generate_unique_job_name(self.parms['scene_file'])
+        self.parms['target_list'] = kwargs['target_list']
+        write_node = self.parms['target_list'][0]
+        script_name = str(nuke.root().name())
+        path, name = os.path.split(script_name)
+        self.parms['scene_file'] << { 'scene_fullpath': script_name }
+        self.parms['job_name'] << { "job_basename": name
+                                    , "jobname_hash": self.get_jobname_hash()
+                                    , "render_driver_name": str(nuke.root().node(write_node).name()) }
         self.parms['req_license'] = 'nuke_lic=1'
-        self.parms['req_resources'] = ''
-        self.parms['frame_range_arg'] = ['-F %s-%sx1', 'start_frame', 'end_frame']
         self.parms['step_frame'] = 5
         self.parms['ignore_check'] = True
-        self.parms['queue'] = str(global_param_knob.queueKnob.value())
-        self.parms['group'] = str(global_param_knob.group_list.value())
-        self.parms['start_frame'] = int(global_param_knob.start_frame.getValue())
-        self.parms['end_frame'] = int(global_param_knob.end_frame.getValue())
+        self.parms['queue'] = kwargs['queue']
+        self.parms['group'] = kwargs['group']
+        self.parms['start_frame'] = kwargs['start_frame']
+        self.parms['end_frame'] = kwargs['end_frame']
         self.parms['frame_range_arg'] = ['-F %s-%sx%s',
-         'start_frame',
-         'end_frame',
-         int(global_param_knob.every_of_Knob.getValue())]
-        self.parms['target_list'] = global_param_knob.write_name.value().split()
-        write_node = self.parms['target_list'][0]
-        self.parms['output_picture'] = str(nuke.root().node(write_node).knob('file').getEvaluatedValue())
-        self.parms['job_on_hold'] = bool(global_param_knob.hold_Knob.value())
-        self.parms['priority'] = int(global_param_knob.priorityKnob.value())
-        if global_param_knob.email_Knob.value():
+                                         'start_frame',
+                                         'end_frame', kwargs['frame_range']]
+        
+        self.parms['output_picture'] = kwargs['output_picture']
+        self.parms['job_on_hold'] = kwargs['job_on_hold']
+        self.parms['priority'] = kwargs['priority']
+
+        if 'email_list' in kwargs:
             self.parms['email_list'] = [utils.get_email_address()]
             self.parms['email_opt'] = 'eas'
-        if global_param_knob.requestSlots_Knob.value():
-            self.parms['req_resources'] = 'procslots=%s' % int(global_param_knob.slotsKnob.value())
+
+        if 'req_resources' in kwargs:
+            self.parms['req_resources'] = kwargs['req_resources']
+
         if self.parms['target_list']:
             self.parms['command_arg'] += [' -X %s ' % ' '.join(self.parms['target_list'])]
 
 
 class NukeFarmGUI(nukescripts.PythonPanel):
+    _ctx = HaContextNuke()
 
     def __init__(self):
         nukescripts.PythonPanel.__init__(self, 'NukeFarmGUI', 'com.human-ark.NukeFarmGUI')
         self.setMinimumSize(100, 400)
         self.initGUI()
 
+
     def run(self):
         result = nukescripts.PythonPanel.showModalDialog(self)
         if not result:
             return
-        nuke.scriptSave()
-        graph = HaGraph()
-        graph.add_node(NukeWrapper(self))
+
+        write_node = self._ctx._write_node_list()[0]
+
+        global_params = dict(
+             queue = str(self.queueKnob.value())
+            ,group = str(self.group_list.value())
+            ,start_frame = int(self.start_frame.getValue())
+            ,end_frame = int(self.end_frame.getValue())
+            ,frame_range = int(self.every_of_Knob.getValue())
+            ,target_list = self.write_name.value().split()
+            ,output_picture = str(write_node.knob('file').getEvaluatedValue())
+            ,job_on_hold = bool(self.hold_Knob.value())
+            ,priority = int(self.priorityKnob.value())
+        )
+        
+        if self.requestSlots_Knob.value():
+            global_params.update( {'req_resources': 'procslots=%s' % int(self.slotsKnob.value()) } )
+        
+        if self.email_Knob.value():
+            global_params.update( {'email_list': [utils.get_email_address()]} )
+        
+        graph = self._ctx._get_graph(**global_params)
         graph.set_render(SlurmRender.SlurmRender)
         graph.render()
         return True
 
+
     def initGUI(self):
         import os
-        job = os.getenv('JOB_CURRENT', 'none')
-        self.queue_list = ('3d', 'nuke', 'turbo_nuke', 'dev')
-        self.queueKnob = nuke.Enumeration_Knob('queue', 'Queue:', self.queue_list)
+        self.queueKnob = nuke.Enumeration_Knob('queue', 'Queue:', self._ctx._queue_list())
         self.queueKnob.setTooltip('Queue to submit job to.')
         self.queueKnob.setValue('nuke')
         self.addKnob(self.queueKnob)
-        self.group_list = nuke.Enumeration_Knob('group', 'Host Group:', ('allhosts', 'grafika', 'render', 'old_intel', 'new_intel'))
+        self.group_list = nuke.Enumeration_Knob('group', 'Host Group:', self._ctx._group_list() )
         self.group_list.setTooltip('Host group to submit job to.')
         self.group_list.setValue('allhosts')
         self.addKnob(self.group_list)
@@ -89,7 +142,7 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         self.addKnob(self.maxTasks_Knob)
         self.separator5 = nuke.Text_Knob('')
         self.addKnob(self.separator5)
-        write_name = ' '.join([ node.name() for node in nuke.root().selectedNodes() if node.Class() in ('Write',) ])
+        write_name = ' '.join( [x.name() for x in self._ctx._write_node_list() ] )
         self.write_name = nuke.String_Knob('write_name', 'Write nodes:')
         self.write_name.setTooltip('Write nodes selected to rendering (empty for all Writes in a scene)')
         self.addKnob(self.write_name)

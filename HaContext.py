@@ -1,9 +1,18 @@
+from HaGraph import HaGraphItem
+import sys
 
-# TODO: There is a place for plugin to choose current context
-import Houdini
-# from hafarm import Houdini
-reload(Houdini)
-from Houdini import HaContextHoudini
+current_context = None
+
+if 'hou' in sys.modules.keys():
+    import Houdini
+    from Houdini import HaContextHoudini
+    current_context = HaContextHoudini()
+
+if 'nuke' in sys.modules.keys():
+    import Nuke
+    from Nuke import HaContextNuke
+    current_context = HaContextNuke()
+
 
 from HaGraph import HaGraphItem
 
@@ -18,8 +27,10 @@ def plugin_property_(func):
     return wrapper_property_        
 
 
+
 class HaContext(object):
-    context_class = HaContextHoudini()
+    context_class = current_context
+
     def __init__(self, external_hashes=[]):
         HaGraphItem._external_hashes = (lambda: [(yield x) for x in external_hashes ])()
 
