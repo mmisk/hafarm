@@ -1,4 +1,12 @@
 #!/usr/bin/python2.6
+
+
+"""
+Make test:
+hython hafarm/tests/test_Houdini.py
+
+"""
+
 import unittest
 import sys, os, tempfile, shutil
 import json

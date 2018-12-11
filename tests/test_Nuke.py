@@ -6,7 +6,11 @@ from contextlib import contextmanager
 
 import nuke
 
+"""
+Make test:
+nuke -t hafarm/tests/test_Nuke.py
 
+"""
 
 @contextmanager
 def tempdir(prefix):
