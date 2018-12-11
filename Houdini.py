@@ -97,7 +97,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         post_renders = []
         self.parms['command'] << {'proxy': ' --proxy '}
 
-        job_name = self.parms['job_name']
+        job_name = str(self.parms['job_name'])
         if job_name.endswith("_mantra"):
             job_name = job_name.replace("_mantra","")
 
@@ -113,7 +113,7 @@ class HoudiniNodeWrapper(HaGraphItem):
     def _debug_post_render(self):
         post_renders = []
 
-        job_name = self.parms['job_name']
+        job_name = str(self.parms['job_name'])
         if job_name.endswith("_mantra"):
             job_name = job_name.replace("_mantra","")
 
