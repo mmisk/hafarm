@@ -1,4 +1,4 @@
-import os
+import os, sys
 import shutil
 
 import parms
@@ -94,6 +94,7 @@ class HaGraphItem(object):
         # coping scene. 
         filename, ext  = os.path.splitext(scene_file)
         path           = os.path.expandvars(self.parms['script_path'])
+        self.parms['scene_file'] << { 'scene_fullpath': None }
         self.parms['scene_file'] << { 'scene_file_path': path, 'scene_file_basename': str(self.parms['job_name']), 'scene_file_ext': ext }
         error = None
         new_scene_file = os.path.join(path, str(self.parms['job_name'])) + ext
@@ -172,10 +173,12 @@ class HaGraph(object):
         '''
             Kwargs:
                 json_output_directory
+                copy_scene_file
         '''
         graph_items = {}
         for x in self.graph_items:
-            x.copy_scene_file()
+            if kwargs.get('copy_scene_file',True) == True:
+                x.copy_scene_file()
             x.pre_schedule()
             graph_items.update( {x.index: x} )
 
