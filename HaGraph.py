@@ -1,4 +1,4 @@
-import os
+import os, sys
 import shutil
 
 import parms
@@ -88,15 +88,16 @@ class HaGraphItem(object):
     def copy_scene_file(self, **kwargs):
         """Makes a copy of a scene file.
         """
-        scene_file = kwargs.get('scene_file', self.parms['scene_file'])
+        scene_file = kwargs.get('scene_file', str(self.parms['scene_file']))
         # TODO: Currenty scene file is copied into job script directory
         # We might want to customize it, along with the whole idea of
         # coping scene. 
         filename, ext  = os.path.splitext(scene_file)
         path           = os.path.expandvars(self.parms['script_path'])
-        new_scene_file = os.path.join(path, self.parms['job_name']) + ext
-        self.parms['scene_file'] = new_scene_file
+        self.parms['scene_file'] << { 'scene_fullpath': None }
+        self.parms['scene_file'] << { 'scene_file_path': path, 'scene_file_basename': str(self.parms['job_name']), 'scene_file_ext': ext }
         error = None
+        new_scene_file = os.path.join(path, str(self.parms['job_name'])) + ext
 
         # We do either file copy or link copy. The latter one is less expensive
         # but less safe also, as we do use render cache as backup history from
@@ -172,10 +173,12 @@ class HaGraph(object):
         '''
             Kwargs:
                 json_output_directory
+                copy_scene_file
         '''
         graph_items = {}
         for x in self.graph_items:
-            x.copy_scene_file()
+            if kwargs.get('copy_scene_file',True) == True:
+                x.copy_scene_file()
             x.pre_schedule()
             graph_items.update( {x.index: x} )
 
@@ -184,12 +187,12 @@ class HaGraph(object):
         for k, item in graph_items.iteritems():
             item.parms['submission_time'] = time()
             _db = {}
-            _db['inputs'] = [ graph_items[x].parms['job_name'] for x in item.dependencies ]
+            _db['inputs'] = [ str(graph_items[x].parms['job_name']) for x in item.dependencies ]
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'HaGraph'
             _db['parms'] = item.parms
             parms_file = kwargs.get( 'json_output_directory' , os.path.expandvars(item.parms['script_path']) )
-            parms_file = os.path.join(parms_file, item.parms['job_name']) + '.json'
+            parms_file = os.path.join(parms_file, str(item.parms['job_name'])) + '.json'
             json_files += [ parms_file ]
             with open(parms_file, 'w') as file:
                 result = json.dump(_db, file, indent=2, cls=ConstantItemJSONEncoder)

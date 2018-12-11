@@ -61,8 +61,15 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self._scene_file = str(hou.hipFile.name())
-        self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
+        path, name = os.path.split(self._scene_file)
+        basename, ext = os.path.splitext(name)
+        self.parms['scene_file'] << { "scene_file_path": path
+                                        ,"scene_file_basename": basename
+                                        ,"scene_file_ext": ext }
+        self.parms['job_name'] << { "job_basename": name
+                                    , "jobname_hash": self.get_jobname_hash()
+                                    , "render_driver_type": self.hou_node_type
+                                    , "render_driver_name": self.hou_node.name() }
 
 
     def __iter__(self):
@@ -88,15 +95,15 @@ class HoudiniNodeWrapper(HaGraphItem):
 
     def _proxy_post_render(self):
         post_renders = []
-        self.parms['command'] << {'proxy':' --proxy '}
+        self.parms['command'] << {'proxy': ' --proxy '}
 
-        job_name = self.parms['job_name']
+        job_name = str(self.parms['job_name'])
         if job_name.endswith("_mantra"):
             job_name = job_name.replace("_mantra","")
 
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
-                                          , job_name = job_name + "_mp4" )
+                                          , job_data = self.parms['job_name'].data())
             make_movie_action.add(self)
             post_renders += [ make_movie_action ]
 
@@ -106,12 +113,12 @@ class HoudiniNodeWrapper(HaGraphItem):
     def _debug_post_render(self):
         post_renders = []
 
-        job_name = self.parms['job_name']
+        job_name = str(self.parms['job_name'])
         if job_name.endswith("_mantra"):
             job_name = job_name.replace("_mantra","")
 
         debug_render = BatchDebug( self.parms['output_picture']
-                                    , job_name = job_name + "_debug"
+                                    , job_data = self.parms['job_name'].data()
                                     , start = self.parms['start_frame']
                                     , end = self.parms['end_frame'] )
         debug_render.add(self)
@@ -120,7 +127,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
         
         merger = BatchReportsMerger( self.parms['output_picture']
-                                        , job_name = job_name + "_report"
+                                        , job_data = self.parms['job_name'].data()
                                         , ifd_path = ifd_path
                                         , resend_frames = self._resend_frames )
         merger.add(debug_render)
@@ -136,7 +143,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
         use_frame_list = kwargs.get('use_frame_list')
         self.hbatch_slots = kwargs.get('hbatch_slots')
 
-        self.parms['command'] << {'command' : '$HFS/bin/hython'}
+        self.parms['command'] << { 'command': '$HFS/bin/hython' }
         self.parms['command_arg'] = [kwargs.get('command_arg')]
         self.parms['req_license'] = 'hbatch_lic=1' 
         self.parms['req_resources'] = 'procslots=%s' % self.hbatch_slots
@@ -150,12 +157,8 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['frame_list'] = kwargs.get('frame_list')
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
-        ifd_name = kwargs.get('ifd_name')
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = []
-        if ifd_name:
-            command_arg += ["--ifd_name %s" %  ifd_name]
-        command_arg += [ "--ignore_tiles", "--generate_ifds" ]
+        command_arg = [ "--ignore_tiles", "--generate_ifds" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -175,8 +178,10 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] = kwargs.get('ifd_name') + '_rs'
-
+        self.parms['job_name'] << { 'jobname_hash': kwargs.get('ifd_hash'), 'render_driver_type': 'rs' }
+        ifd_name = self.parms['job_name'].clone()
+        ifd_name << { 'render_driver_type': '' }
+        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
 
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
@@ -192,15 +197,20 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
-        name = self.generate_unique_job_name(self._scene_file)
-        self.ifd_name = kwargs.get("ifd_name", name)
-        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.rs')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        self.parms['job_name'] = self.ifd_name + "_" + self.hou_node.name() + "_redshift"
+        
+        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
+                                        , 'scene_file_basename': self.parms['job_name']._data['job_basename']
+                                        , 'scene_file_ext': '.ifd' }
+        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+
+        if 'ifd_hash' in kwargs:
+            self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
+            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
 
     def __iter__(self):
-        self._kwargs['ifd_name'] = self.ifd_name
+        self._kwargs['ifd_hash'] = self.get_jobname_hash()
         rs = HoudiniRSWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
         self._instances += [rs]
         yield rs
@@ -244,8 +254,10 @@ class HoudiniIFDWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniIFDWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_ifd'
-        self.parms['job_name'] = kwargs.get('ifd_name') + '_ifd'
-
+        self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'], 'render_driver_type': 'ifd' }
+        ifd_name = self.parms['job_name'].clone()
+        ifd_name << { 'render_driver_type': '' }
+        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
 
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
@@ -256,19 +268,16 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
         self._output_picture = kwargs.get('output_picture','')
-        self._scene_file = kwargs.get('scene_file','')
         super(HoudiniMantraExistingIfdWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_render'
-        name_prefix = kwargs.get('name_prefix','')
         threads = kwargs.get('mantra_slots')
         if self.parms['cpu_share'] != 1.0:
             self.parms['command_arg'] = ['-j', const.MAX_CORES]
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
-        self.parms['scene_file'] = self._scene_file
-        self.parms['job_name'] = self.parms['job_name'] + "_" + name_prefix + "from" + self.hou_node.name() 
-        self.parms['command'] << { 'command' : '$HFS/bin/mantra' }
+        self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
+        self.parms['command'] << { 'command': '$HFS/bin/mantra' }
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
         self.parms['req_license'] = 'mantra_lic=1'
@@ -277,7 +286,6 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         self.parms['end_frame'] = kwargs.get('end_frame', 0)
 
         if kwargs.get('render_exists_ifd'):
-            self.parms['scene_file'] = kwargs.get('scene_file')
             self.parms['output_picture'] = kwargs.get('output_picture')
 
 
@@ -302,10 +310,6 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         mantra_filter = kwargs.get('mantra_filter')
         frame = None
         self._slices = kwargs.get('frames')
-        name = self.generate_unique_job_name(self._scene_file) + "_" + self.hou_node.name()
-        self.ifd_name = kwargs.get("ifd_name", name)
-        self.parms['scene_file'] = os.path.join(kwargs['ifd_path'], self.ifd_name + '.' + const.TASK_ID + '.ifd')
-        self.parms['job_name'] = self.ifd_name + '_mantra'
         self._tiles_x, self._tiles_y = kwargs.get('tile_x'), kwargs.get('tile_y')
         self._vm_tile_render = self.hou_node.parm('vm_tile_render').eval()
         if self._tiles_x * self._tiles_y > 1:
@@ -324,8 +328,17 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
 
         if kwargs.get('render_exists_ifd'):
-            self.parms['scene_file'] = kwargs.get('scene_file')
+            self.parms['scene_file'] << { 'scene_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
+
+        self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
+                                        , 'scene_file_basename': self.parms['job_name']._data['job_basename']
+                                        , 'scene_file_ext': '.ifd' }
+        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+
+        if 'ifd_hash' in kwargs:
+            self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
+            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
 
     def get_step_frame(self):
@@ -333,7 +346,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
 
     def __iter__(self):
-        self._kwargs['ifd_name'] = self.ifd_name
+        self._kwargs['ifd_hash'] = self.get_jobname_hash()
         ifd = HoudiniIFDWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
         self._instances += [ifd]
         yield ifd
@@ -369,7 +382,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
 
     def _frames_render(self):
-        self.parms['job_name'] += "_frame%s" % self._slices[self._slice_idx]
+        self.parms['job_name'] << { "frame": self._slices[self._slice_idx] }
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
 
         for k, m in houdini_dependencies.iteritems():
@@ -379,15 +392,17 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
     def _tile_post_render(self):
         '''Generates merge job with general BatchFarm class for joining tiles.'''
-        self.parms['job_name'] += "_TILES"
         post_renders = []
         TILES_SUFFIX = "_tile%02d_"
         
         filepath, padding, ext = self.parms['output_picture'].rsplit('.',2)
-        mask_filename = '.'.join([filepath + TILES_SUFFIX, '%s', ext])
+        path, basename = os.path.split(filepath)
+
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
         output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
         self.parms['output_picture'] = output_picture
-        
+        self.parms['job_name'] << { 'tiles' : True }
+
         join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
                                             , self._tiles_x, self._tiles_y
                                             , mask_filename
@@ -395,7 +410,9 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
                                             , make_proxy = self._make_proxy 
                                             , start = self.parms['start_frame']
                                             , end = self.parms['end_frame']
+                                            , job_data = self.parms['job_name'].data()
                                         )
+
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
         self.index, join_tiles_action.index = join_tiles_action.index, self.index
         join_tiles_action.add( *mantra_instances )
@@ -454,9 +471,9 @@ class HoudiniCompositeWrapper(HbatchWrapper):
 class HoudiniWrapper(type):
     """docstring for HaHoudiniWrapper"""
     def __new__(cls, name, *args, **kwargs):
-        hou_drivers = {   'ifd' : HoudiniMantraWrapper
-                        , 'baketexture' :  HoudiniBaketexture
-                        , 'baketexture::3.0' :  HoudiniBaketexture30                        
+        hou_drivers = {   'ifd': HoudiniMantraWrapper
+                        , 'baketexture':  HoudiniBaketexture
+                        , 'baketexture::3.0':  HoudiniBaketexture30                        
                         , 'alembic': HoudiniAlembicWrapper
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper

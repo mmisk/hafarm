@@ -44,6 +44,17 @@ class ConstantItem(object):
     def __str__(self):
         return self.__repr__()
 
+    def __add__(self, lhs):
+        return self.__repr__() + lhs
+
+    def data(self):
+        return self._data.copy()
+
+    def clone(self):
+        ret = ConstantItem(self._name)
+        ret << self._data
+        return ret
+
     def __repr__(self):
         rendered = parms_jinja_template.render(self._data)
         parms = json.load(io.StringIO(str(rendered)))
@@ -72,12 +83,12 @@ hafarm_defaults = {'start_frame': 1,
                    'email_list': [],
                    'email_opt': '',
                    'make_proxy': False,
-                   'job_name': '',
+                   'job_name': ConstantItem('job_name'),
                    'log_path': '$JOB/render/sungrid/log',
                    'script_path': '$JOB/render/sungrid/jobScript',
                    'email_stdout': False,
                    'email_stderr': False,
-                   'scene_file': '',
+                   'scene_file': ConstantItem('scene_file'),
                    'user': '',
                    'include_list': [],
                    'exclude_list': [],
