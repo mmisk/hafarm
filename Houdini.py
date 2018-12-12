@@ -202,7 +202,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
-                                        , 'scene_file_ext': '.ifd' }
+                                        , 'scene_file_ext': '.rs' }
         self.parms['job_name'] << { 'render_driver_type': 'mantra' }
 
         if 'ifd_hash' in kwargs:
