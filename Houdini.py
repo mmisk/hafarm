@@ -158,7 +158,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = [ "--ignore_tiles", "--generate_ifds" ]
+        command_arg = [ "--ignore_tiles" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -181,7 +181,8 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.parms['job_name'] << { 'jobname_hash': kwargs.get('ifd_hash'), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
-        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
+        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
+
 
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
@@ -257,7 +258,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'], 'render_driver_type': 'ifd' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
-        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
+        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
 
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
