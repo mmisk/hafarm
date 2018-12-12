@@ -121,7 +121,7 @@ class Slurm(RenderManager):
         else:
             slurm_template = TEMPLATE_ENVIRONMENT.get_template('slurm_job.schema')
         
-        rendered = slurm_template.render(self.parms)
+        rendered = slurm_template.render(self.parms,env=os.environ)
 
         with open(script_path, 'w') as file:
             file.write(rendered)
