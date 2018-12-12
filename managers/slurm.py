@@ -130,7 +130,6 @@ class Slurm(RenderManager):
         return script_path
 
 
-
     def _create_submit_command(self):
         """Submit an array job based on already provided job's parameters in HAFarmParms.
         """
