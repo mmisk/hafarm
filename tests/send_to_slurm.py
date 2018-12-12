@@ -17,7 +17,6 @@ HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
 @contextmanager
 def tempdir(prefix, remove=True):
-    
     dirpath = tempfile.mkdtemp(prefix=prefix)
     try:
         yield dirpath
@@ -85,12 +84,46 @@ class TestTmpSlurm(unittest.TestCase):
                 self.assertEqual(self._test_job(job_expected, job_actual), True, n)
 
 
-    def test_GeneratedFiles(self):
-        with tempdir('hafarm_hou_test_slurm') as tmp:
+    def test_replaceTASKID(self):
+        with tempdir('hafarm_slurm_test_replaceTASKID',False) as tmp:
             os.environ['JOB'] = tmp
-
             generated_directory = tmp + '/render/sungrid/jobScript'
+            os.makedirs(generated_directory)
 
+            item1 = Batch.BatchBase("testR",'/hafarm/test_replace1')
+            path = '/tmp'
+            ext = '.ifd'
+
+            item1.parms['command'] << { "command": "FILE_FOR_DIFF" }
+
+            item1.parms['scene_file'] << { 'scene_file_path': path
+                                            , 'scene_file_basename':  'test1.hip' 
+                                            , 'scene_file_ext': ext 
+                                            , 'scene_file_hash': 'YYY2'
+                                          }
+
+            graph = HaGraph.HaGraph(graph_items_args=[])
+
+            graph.add_node(item1)
+
+            graph.set_render(SlurmRender.SlurmRender)
+            json_files = graph.render(dryrun=True)
+
+            self.assertEqual(len(json_files), 1, 'incorrect count files')
+            
+            expected_files = [   'testR_XXX4__bs.job'
+                                ,'testR_XXX4__bs.json' ]
+
+            actual_files = os.listdir(generated_directory)
+            actual_files.sort()
+
+            self._test_files(expected_files, actual_files, generated_directory)
+
+
+    def test_GeneratedFiles(self):
+        with tempdir('hafarm_slurm_test_GeneratedFiles') as tmp:
+            os.environ['JOB'] = tmp
+            generated_directory = tmp + '/render/sungrid/jobScript'
             os.makedirs(generated_directory)
 
             item1 = Batch.BatchBase("test1",'/hafarm/test1')
@@ -108,7 +141,7 @@ class TestTmpSlurm(unittest.TestCase):
             item3.parms['command'] << { "command": "echo" }
             item3.add( item1, item2 )
 
-            graph = HaGraph.HaGraph()
+            graph = HaGraph.HaGraph(graph_items_args=[])
 
             graph.add_node(item1)
             graph.add_node(item2)
@@ -119,7 +152,7 @@ class TestTmpSlurm(unittest.TestCase):
 
             self.assertEqual(len(json_files), 3, 'incorrect count files')
 
-            expected_files = [ 'test1_XXX1__bs.job'
+            expected_files = [   'test1_XXX1__bs.job'
                                 ,'test1_XXX1__bs.json'
                                 ,'test2_XXX2__bs.job'
                                 ,'test2_XXX2__bs.json'
