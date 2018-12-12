@@ -15,6 +15,7 @@ from contextlib import contextmanager
 
 @contextmanager
 def tempdir(prefix):
+    os.environ['JOB'] = '/tmp'
     dirpath = tempfile.mkdtemp(prefix=prefix)
     try:
         yield dirpath
