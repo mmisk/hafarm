@@ -86,7 +86,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test_GeneratedFiles(self):
-        with tempdir('hafarm_hou_test_slurm',False) as tmp:
+        with tempdir('hafarm_hou_test_slurm') as tmp:
             os.environ['JOB'] = tmp
 
             generated_directory = tmp + '/render/sungrid/jobScript'
