@@ -24,7 +24,7 @@ class BatchBase(HaGraphItem):
         self.parms['req_resources'] = ''
         self.parms['start_frame'] = 1
         self.parms['end_frame'] = 1
-        self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash() }
+        self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash(), 'render_driver_type': 'bs' }
         if 'job_data' in kwargs:
             self.parms['job_name'] << kwargs['job_data']
 

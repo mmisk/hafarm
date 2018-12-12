@@ -199,7 +199,7 @@ class HaGraph(object):
 
         if self.RenderCls != None:
             render = self.RenderCls(graph_items)
-            render.render()
+            render.render(**kwargs)
 
         return list(set(json_files))
 
