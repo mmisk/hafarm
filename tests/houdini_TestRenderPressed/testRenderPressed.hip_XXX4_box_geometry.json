@@ -22,7 +22,6 @@
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
       "--ignore_tiles", 
-      "--generate_ifds", 
       "-d /out/box"
     ], 
     "step_frame": 8, 
@@ -41,7 +40,7 @@
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544605935.128753, 
+    "submission_time": 1544620505.336779, 
     "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_XXX4_box_geometry.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 

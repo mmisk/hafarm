@@ -56,19 +56,42 @@ class BtDriver(BaseDriver):
 
 
 
+class CompDriver(BaseDriver):
+    _vmpicture = 'copoutput'
+
+
+
+class GeoDriver(BaseDriver):
+    _vmpicture = 'sopoutput'
+
+
+
+class AlembicDriver(BaseDriver):
+    _vmpicture = 'filename'
+
+
+
 class FixDriver(object):
     def __new__(cls, driver, *args, **kwargs):
         hou_drivers = {   'ifd' : IfdDriver
                         , 'baketexture' :  BtDriver
-                        , 'baketexture::3.0' :  BtDriver                        
+                        , 'baketexture::3.0' :  BtDriver
                         , 'Redshift_ROP': RsDriver
+                        , 'comp': CompDriver
+                        , 'geometry': GeoDriver
+                        , 'alembic': AlembicDriver
                     }
-        return hou_drivers[driver.type().name()](driver, **kwargs)
+        drv = hou_drivers.get(driver.type().name())
+        if not drv:
+            return None
+        return drv(driver, **kwargs)
 
 
 
 def set_generate_ifd(driver, options):
     fd = FixDriver(driver)
+    if fd == None: 
+        return
     fd.disk_enable.set(1)
     scene_path, scene_name = os.path.split(hou.hipFile.name())
     scene_name, ext = os.path.splitext(scene_name)
@@ -86,6 +109,8 @@ def fix_driver_vmpicture(driver):
     .../test1.hip_c5UH_grid_ifd.grid.0114.exr >> .../test1.hip_c5UH_grid_ifd.0114.exr 
     """
     fd = FixDriver(driver)
+    if fd == None: 
+        return
     picture_name = fd.vmpicture.eval()
     if ('_%s_' % driver.name() in picture_name) \
          and ('.%s.' % driver.name() in picture_name):

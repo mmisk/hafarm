@@ -25,7 +25,6 @@
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
       "--ignore_tiles", 
-      "--generate_ifds", 
       "-d /out/comp"
     ], 
     "step_frame": 8, 
@@ -44,7 +43,7 @@
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544605935.126614, 
+    "submission_time": 1544620505.338294, 
     "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_XX26_comp_comp.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
