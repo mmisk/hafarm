@@ -112,7 +112,7 @@ class Slurm(RenderManager):
 
         cmd = str(self.parms['command'])
         self.parms['command'] = os.path.expandvars(cmd)
-        self.parms['scene_file'] << { 'scene_file_fullpath': scene_file }
+        self.parms['scene_file'] << { 'scene_fullpath': scene_file }
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
 
         slurm_template = None
@@ -128,7 +128,6 @@ class Slurm(RenderManager):
         
         # As a convention we return a dict with function's proper value or None
         return script_path
-
 
 
     def _create_submit_command(self):

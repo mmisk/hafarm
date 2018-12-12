@@ -56,7 +56,7 @@ class ConstantItem(object):
         return ret
 
     def __repr__(self):
-        rendered = parms_jinja_template.render(self._data)
+        rendered = parms_jinja_template.render(self._data,TASK_ID=TASK_ID)
         parms = json.load(io.StringIO(str(rendered)))
         return '%s' % parms[self._name]
 
