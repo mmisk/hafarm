@@ -292,6 +292,10 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
             self.parms['job_name'] += { 'render_driver_type': kwargs.get('render_driver_type', 'mantra_frame%s' % kwargs.get('frame')) }
 
 
+    def is_tiled(self):
+        return self._vm_tile_render
+
+
     def get_step_frame(self):
         return self.hou_node.parm("ifd_range3").eval()
 
