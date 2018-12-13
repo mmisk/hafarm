@@ -188,6 +188,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
 
+
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
 
@@ -314,10 +315,10 @@ class HoudiniMantraWrapper(HaGraphItem):
         if kwargs['frames'] != [1]:
             ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
             frames = kwargs.get('frames')
-            self._items = [ ifd ]
+            self.append_instances( ifd )
             for frame in frames:
                 mtr = HoudiniMantraWrapper(str(uuid4()), self._path, [ifd.index], frame=frame, **self._kwargs)
-                self._items += [ mtr ]
+                self.append_instances( mtr )
 
             mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
 
@@ -332,13 +333,13 @@ class HoudiniMantraWrapper(HaGraphItem):
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
             altus = AltusBatchRender( mtr2.parms['output_picture'], job_data = ifd.parms['job_name'].data() )
             altus.add(mtr1,mtr2)
-            self._items = [ifd,mtr1,mtr2,altus]
+            self.append_instances( ifd, mtr1, mtr2, altus )
 
         else:
             self._kwargs['ifd_hash'] = self.get_jobname_hash()
             ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
-            self._items = [ifd,mtr1]
+            self.append_instances( ifd, mtr1)
 
             if mtr1.is_tiled() == True:
                 join_tiles_action = BatchJoinTiles( self.parms['output_picture']
@@ -361,7 +362,7 @@ class HoudiniMantraWrapper(HaGraphItem):
                 make_movie_action = BatchMp4( mtr1['output_picture']
                                           , job_data = ifd.parms['job_name'].data())
                 make_movie_action.add(mtr1)
-                self._items += [ make_movie_action ]
+                self.append_instances( make_movie_action )
 
             if kwargs.get('debug_images', False) == True:
                 debug_render = BatchDebug( mtr1.parms['output_picture']
@@ -373,7 +374,11 @@ class HoudiniMantraWrapper(HaGraphItem):
                                         , job_data = mtr1.parms['job_name'].data()
                                         , resend_frames = kwargs.get('resend_frames', False) )
                 merger.add(debug_render)
-                self._items += [debug_render,merger]
+                self.append_instances( debug_render,merger )
+
+
+    def append_instances(self, *args):
+        self._items += args
 
 
     def __iter__(self):
@@ -393,8 +398,10 @@ class HoudiniAlembicWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniAlembicWrapper, self).__init__(index, path, depends, **kwargs)
 
+
     def get_step_frame(self):
         return int(self.hou_node.parm('f2').eval())
+
 
     def get_output_picture(self):
         return self.hou_node.parm('filename').eval()
@@ -405,6 +412,7 @@ class HoudiniGeometryWrapper(HbatchWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniGeometryWrapper, self).__init__(index, path, depends, **kwargs)
+
 
     def get_output_picture(self):
         return self.hou_node.parm('sopoutput').eval()
