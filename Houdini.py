@@ -388,12 +388,6 @@ class HoudiniBaketexture(HbatchWrapper):
 
 
 
-class HoudiniBaketexture30(HbatchWrapper):
-    def get_output_picture(self):
-        return self.hou_node.parm('vm_uvoutputpicture1').eval()
-
-
-
 class HoudiniAlembicWrapper(HbatchWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -433,7 +427,7 @@ class HoudiniWrapper(type):
     def __new__(cls, name, *args, **kwargs):
         hou_drivers = {   'ifd': HoudiniMantraWrapper
                         , 'baketexture':  HoudiniBaketexture
-                        , 'baketexture::3.0':  HoudiniBaketexture30                        
+                        , 'baketexture::3.0':  HoudiniBaketexture                        
                         , 'alembic': HoudiniAlembicWrapper
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
