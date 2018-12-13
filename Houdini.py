@@ -60,6 +60,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self.parms['job_on_hold'] = kwargs['job_on_hold']
+        self.parms['priority'] = kwargs['priority']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
