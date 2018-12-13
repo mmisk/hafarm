@@ -397,7 +397,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
     def post_render_actions(self):
         post_renders = []
 
-        if self._slices != [1] and self._altus == False:
+        if self._slices != [1]:
             self._frames_render()
 
         if self._vm_tile_render == True:
