@@ -54,7 +54,7 @@ echo Scene file  : {{ scene_file }}
 {{ pre_render_script }}
 {%- endif %}
 
-{{ command }} {{ command_arg|join(' ') }} {{ scene_file }}
+{{ command }} {{ command_arg|join(' ') }} {{ scene_file }} {{ output_picture }}
 exit_code=$?
 
 {%- if post_render_script %}
