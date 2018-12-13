@@ -27,7 +27,7 @@ parms_jinja_template = TEMPLATE_ENVIRONMENT.get_template('parms.schema')
 class ConstantItemJSONEncoder(json.JSONEncoder):
 
     def default(self, z):
-        if isinstance(z, ConstantItem):
+        if id(ConstantItem) == id(z.__class__):
             return str(z)
         super().default(self, z)
 
