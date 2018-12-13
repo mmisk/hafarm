@@ -1,6 +1,11 @@
 # 2018.11.09 13:58:48 CET
 import tempfile
-from graphviz import Digraph
+try:
+    from graphviz import Digraph
+    is_graphviz = True
+except:
+    is_graphviz = False
+    pass
 
 
 
@@ -12,6 +17,9 @@ class GraphvizRender(object):
         self.hagraphitems_lst = hagraphitems_lst
 
     def render(self):
+        if not is_graphviz:
+            raise Exception("graphviz module not avaliable.")
+            
         dot = Digraph(comment='The Round Table')
         dot.node_attr.update(fillcolor='darkolivegreen3', style='rounded,filled', shape='rectangle')
         i = 0
