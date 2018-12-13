@@ -359,7 +359,7 @@ class HoudiniMantraWrapper(HaGraphItem):
                 make_movie_action.add(mtr1)
                 self._items += [ make_movie_action ]
 
-             if kwargs.get('debug_images', False) == True:
+            if kwargs.get('debug_images', False) == True:
                 debug_render = BatchDebug( mtr1.parms['output_picture']
                                             , job_data = mtr1.parms['job_name'].data()
                                             , start = mtr1.parms['start_frame']
