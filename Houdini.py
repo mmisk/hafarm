@@ -60,6 +60,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self.parms['job_on_hold'] = kwargs['job_on_hold']
+        self.parms['priority'] = kwargs['priority']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -203,7 +205,7 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
                                         , 'scene_file_ext': '.rs' }
-        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+        self.parms['job_name'] << { 'render_driver_type': 'redshift' }
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
