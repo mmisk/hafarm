@@ -393,25 +393,19 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
     def _tile_post_render(self):
         '''Generates merge job with general BatchFarm class for joining tiles.'''
         post_renders = []
-        TILES_SUFFIX = "_tile%02d_"
         
-        filepath, padding, ext = self.parms['output_picture'].rsplit('.',2)
-        path, basename = os.path.split(filepath)
-
-        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
-        output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
-        self.parms['output_picture'] = output_picture
         self.parms['job_name'] << { 'tiles' : True }
 
-        join_tiles_action = BatchJoinTiles( '.'.join([filepath, const.TASK_ID, ext])
+        join_tiles_action = BatchJoinTiles( self.parms['output_picture']
                                             , self._tiles_x, self._tiles_y
-                                            , mask_filename
                                             , self.parms['priority'] + 1
                                             , make_proxy = self._make_proxy 
                                             , start = self.parms['start_frame']
                                             , end = self.parms['end_frame']
                                             , job_data = self.parms['job_name'].data()
                                         )
+        
+        self.parms['output_picture'] = join_tiles_action.parms['output_picture']
 
         mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
         self.index, join_tiles_action.index = join_tiles_action.index, self.index
