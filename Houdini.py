@@ -60,6 +60,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self.parms['job_on_hold'] = kwargs['job_on_hold']
+        self.parms['priority'] = kwargs['priority']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -97,10 +99,6 @@ class HoudiniNodeWrapper(HaGraphItem):
         post_renders = []
         self.parms['command'] << {'proxy': ' --proxy '}
 
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
-
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
                                           , job_data = self.parms['job_name'].data())
@@ -112,10 +110,6 @@ class HoudiniNodeWrapper(HaGraphItem):
 
     def _debug_post_render(self):
         post_renders = []
-
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
 
         debug_render = BatchDebug( self.parms['output_picture']
                                     , job_data = self.parms['job_name'].data()
@@ -202,8 +196,8 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
-                                        , 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+                                        , 'scene_file_ext': '.rs' }
+        self.parms['job_name'] << { 'render_driver_type': 'redshift' }
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
