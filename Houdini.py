@@ -11,7 +11,7 @@ import hou
 import utils
 import const
 import Batch
-from Batch import BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
+from Batch import BatchBase, BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
 
 from uuid import uuid4
 
@@ -99,10 +99,6 @@ class HoudiniNodeWrapper(HaGraphItem):
         post_renders = []
         self.parms['command'] << {'proxy': ' --proxy '}
 
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
-
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
                                           , job_data = self.parms['job_name'].data())
@@ -114,10 +110,6 @@ class HoudiniNodeWrapper(HaGraphItem):
 
     def _debug_post_render(self):
         post_renders = []
-
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
 
         debug_render = BatchDebug( self.parms['output_picture']
                                     , job_data = self.parms['job_name'].data()
@@ -305,11 +297,27 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         pass
 
 
+class AltusBatchRender(BatchBase):
+    def __init__(self, filename, *args, **kwargs):
+        name = 'altus'
+        tags = '/hafarm/altus'
+        super(AltusBatchRender, self).__init__(name, tags, *args, **kwargs)
+        base, file = os.path.split(filename)
+        file, _ = os.path.splitext(file)
+        inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
+        outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
+        self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+        self.parms['command'] << {'command': 'altus '}
+        self.parms['job_name'] << { 'render_driver_type': 'altus' }
+    
+    def post_render_actions(self):
+        return []
 
-class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
+
+class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
-        super(HoudiniMantraWrapper, self).__init__(index, path, depends, **kwargs)
+        super(HoudiniMantra, self).__init__(index, path, depends, **kwargs)
         mantra_filter = kwargs.get('mantra_filter')
         frame = None
         self._slices = kwargs.get('frames')
@@ -337,29 +345,18 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
                                         , 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+        self.parms['job_name'] << { 'render_driver_type': kwargs.get('render_driver_type', 'mantra') }
+        self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
+        self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
-        if 'ifd_hash' in kwargs:
-            self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
-            self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
 
     def get_step_frame(self):
         return self.hou_node.parm("ifd_range3").eval()
 
 
-    def __iter__(self):
-        self._kwargs['ifd_hash'] = self.get_jobname_hash()
-        ifd = HoudiniIFDWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
-        self._instances += [ifd]
-        yield ifd
-
-        pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
-        for n in pieces:
-            mtr = HoudiniMantraWrapper(n, self.path, [ifd.index], **self._kwargs)
-            self._instances += [mtr]
-            mtr._instances = self._instances
-            yield mtr
+    def _get_items(self):
+        return self._items
 
 
     def get_output_picture(self):
@@ -380,7 +377,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
         if self._debug_images == True:
             post_renders += self._debug_post_render()
-            
+
         return post_renders
 
 
@@ -424,7 +421,46 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         return post_renders
 
 
-    
+
+class HoudiniMantraWrapper(HaGraphItem):
+    def __init__(self, index, path, depends, **kwargs):
+        self._items = []
+        self._kwargs = kwargs
+        self._path = path
+
+        if 'altus' in kwargs:
+            self._kwargs['ifd_hash'] = self.get_jobname_hash()
+            ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
+            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
+            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
+            altus = AltusBatchRender( mtr2.parms['output_picture'], job_data = ifd.parms['job_name'].data() )
+            altus.add(mtr1,mtr2)
+            self._items = [ifd,mtr1,mtr2,altus]
+
+            if kwargs.get('make_movie', False) == True
+                make_movie_action = BatchMp4( altus['output_picture']
+                                          , job_data = ifd.parms['job_name'].data())
+                make_movie_action.add(altus)
+                self._items += [ make_movie_action ]
+
+        else:
+            self._kwargs['ifd_hash'] = self.get_jobname_hash()
+            ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
+            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
+            self._items = [ifd,mtr1]
+            if kwargs.get('make_movie', False) == True
+                make_movie_action = BatchMp4( mtr1['output_picture']
+                                          , job_data = ifd.parms['job_name'].data())
+                make_movie_action.add(mtr1)
+                self._items += [ make_movie_action ]
+
+
+    def __iter__(self):
+        for obj in self._items:
+            yield obj
+
+
+
 class HoudiniAlembicWrapper(HbatchWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -541,8 +577,10 @@ class HaContextHoudini(object):
                     , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
                     , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
                 )
-
         global_parms.update(task_control)
+
+        # if hafarm_node.parm('altus').eval() == True:
+        global_parms.update( { 'altus': True } )
 
         hou.hipFile.save()
         
