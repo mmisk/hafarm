@@ -99,10 +99,6 @@ class HoudiniNodeWrapper(HaGraphItem):
         post_renders = []
         self.parms['command'] << {'proxy': ' --proxy '}
 
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
-
         if self._make_movie == True:
             make_movie_action = BatchMp4( self.parms['output_picture']
                                           , job_data = self.parms['job_name'].data())
@@ -114,10 +110,6 @@ class HoudiniNodeWrapper(HaGraphItem):
 
     def _debug_post_render(self):
         post_renders = []
-
-        job_name = str(self.parms['job_name'])
-        if job_name.endswith("_mantra"):
-            job_name = job_name.replace("_mantra","")
 
         debug_render = BatchDebug( self.parms['output_picture']
                                     , job_data = self.parms['job_name'].data()
