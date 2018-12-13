@@ -11,7 +11,7 @@ import hou
 import utils
 import const
 import Batch
-from Batch import BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
+from Batch import BatchBase, BatchMp4, BatchDebug, BatchReportsMerger, BatchJoinTiles
 
 from uuid import uuid4
 
@@ -158,7 +158,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
             self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
             self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
         self.parms['command_arg'] += ['-d %s' % " ".join(self.parms['target_list'])]
-        command_arg = [ "--ignore_tiles", "--generate_ifds" ]
+        command_arg = [ "--ignore_tiles" ]
         if kwargs.get('ifd_path_is_default') == None:
             command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
 
@@ -181,7 +181,8 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.parms['job_name'] << { 'jobname_hash': kwargs.get('ifd_hash'), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
-        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
+        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
+
 
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
@@ -201,8 +202,8 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
-                                        , 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type': 'mantra' }
+                                        , 'scene_file_ext': '.rs' }
+        self.parms['job_name'] << { 'render_driver_type': 'redshift' }
 
         if 'ifd_hash' in kwargs:
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
@@ -257,7 +258,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'], 'render_driver_type': 'ifd' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
-        self.parms['command_arg'] += ["--ifd_name %s" %  ifd_name ]
+        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
 
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
@@ -302,6 +303,21 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         pass
 
 
+class AltusBatchRender(BatchBase):
+    def __init__(self, filename, *args, **kwargs):
+        name = 'altus'
+        tags = '/hafarm/altus'
+        super(AltusBatchRender, self).__init__(name, tags, *args, **kwargs)
+        base, file = os.path.split(filename)
+        file, _ = os.path.splitext(file)
+        inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
+        outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
+        self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+        self.parms['command'] << {'command': 'altus '}
+        self.parms['job_name'] << { 'render_driver_type': 'altus' }
+
+
+
 
 class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
     """docstring for HaMantraWrapper"""
@@ -340,9 +356,18 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
             self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
             self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
+        self._altus = ('altus' in kwargs)
+        if 'altus_index_name' in kwargs:
+            self.parms['job_name'] << { 'job_basename': self.parms['job_name'].data()['job_basename'] + '_' + kwargs['altus_index_name']}
+            self._altus = False
+
 
     def get_step_frame(self):
         return self.hou_node.parm("ifd_range3").eval()
+
+
+    def _get_items(self):
+        return self._items
 
 
     def __iter__(self):
@@ -351,8 +376,14 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         self._instances += [ifd]
         yield ifd
 
+        if self._altus == True:
+            mtr = HoudiniMantraWrapper(str(uuid4()), self.path, [ifd.index], altus_index_name = 'alt1', **self._kwargs)
+            self._instances += [mtr]
+            mtr._instances = self._instances
+            yield mtr
+        
         pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
-        for n in pieces:
+        for i, n in enumerate(pieces):
             mtr = HoudiniMantraWrapper(n, self.path, [ifd.index], **self._kwargs)
             self._instances += [mtr]
             mtr._instances = self._instances
@@ -366,7 +397,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
     def post_render_actions(self):
         post_renders = []
 
-        if self._slices != [1]:
+        if self._slices != [1] and self._altus == False:
             self._frames_render()
 
         if self._vm_tile_render == True:
@@ -377,7 +408,23 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
         if self._debug_images == True:
             post_renders += self._debug_post_render()
+
+        if self._altus == True:
+            post_renders += self._altus_render()
             
+        return post_renders
+
+
+    def _altus_render(self):
+        post_renders = []
+
+        mantra_instances = filter(lambda x: isinstance(x, HoudiniMantraWrapper), self._instances)
+
+        altus_action = AltusBatchRender( self.parms['output_picture']
+                                            , job_data = self.parms['job_name'].data())
+        altus_action.add(*mantra_instances)
+        post_renders += [ altus_action ]
+
         return post_renders
 
 
@@ -538,8 +585,10 @@ class HaContextHoudini(object):
                     , hbatch_slots = hafarm_node.parm('hbatch_slots').eval()
                     , hbatch_ram = hafarm_node.parm('hbatch_ram').eval()
                 )
-
         global_parms.update(task_control)
+
+        # if hafarm_node.parm('altus').eval() == True:
+        global_parms.update( { 'altus': True } )
 
         hou.hipFile.save()
         
