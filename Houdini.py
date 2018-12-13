@@ -358,7 +358,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
 
         self._altus = ('altus' in kwargs)
         if 'altus_index_name' in kwargs:
-            self.parms['job_name'] << { 'job_basename': self.parms['job_name'].data()['job_basename'] + '_' + kwargs['altus_index_name']}
+            self.parms['job_name'] << { 'render_driver_type': kwargs.get('altus_index_name')}
             self._altus = False
 
 
@@ -377,7 +377,7 @@ class HoudiniMantraWrapper(HoudiniMantraExistingIfdWrapper):
         yield ifd
 
         if self._altus == True:
-            mtr = HoudiniMantraWrapper(str(uuid4()), self.path, [ifd.index], altus_index_name = 'alt1', **self._kwargs)
+            mtr = HoudiniMantraWrapper(str(uuid4()), self.path, [ifd.index], altus_index_name = 'mantra2', **self._kwargs)
             self._instances += [mtr]
             mtr._instances = self._instances
             yield mtr
