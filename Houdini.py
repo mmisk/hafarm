@@ -330,25 +330,6 @@ class HoudiniMantraWrapper(HaGraphItem):
             altus.add(mtr1,mtr2)
             self._items = [ifd,mtr1,mtr2,altus]
 
-            if kwargs.get('make_movie', False) == True:
-                make_movie_action = BatchMp4( altus['output_picture']
-                                          , job_data = ifd.parms['job_name'].data())
-                make_movie_action.add(altus)
-                self._items += [ make_movie_action ]
-
-            if kwargs.get('debug_images', False) == True:
-                debug_render = BatchDebug( self.parms['output_picture']
-                                            , job_data = altus.parms['job_name'].data()
-                                            , start = altus.parms['start_frame']
-                                            , end = altus.parms['end_frame'] )
-                debug_render.add(altus)
-
-                merger = BatchReportsMerger( altus.parms['output_picture']
-                                                , job_data = altus.parms['job_name'].data()
-                                                , resend_frames = kwargs.get('resend_frames', False) )
-                merger.add(debug_render)
-                self._items += [debug_render,merger]
-
         else:
             self._kwargs['ifd_hash'] = self.get_jobname_hash()
             ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
