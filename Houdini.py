@@ -281,7 +281,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name']._data['job_basename']
                                         , 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type': kwargs.get('render_driver_type', 'mantra') }
+        self.parms['job_name'] << { 'render_driver_type': 'mantra' + kwargs.get('driver_type_prefix','') }
         self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
         self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
 
@@ -290,7 +290,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         if self._vm_tile_render == True:
             self.parms['job_name'] << { 'tiles' : True }
         if kwargs.get('frame') != None:
-            self.parms['job_name'] += { 'render_driver_type': kwargs.get('render_driver_type', 'mantra_frame%s' % kwargs.get('frame')) }
+            self.parms['job_name'] += { 'render_driver_type': 'mantra_frame%s' % kwargs.get('frame') }
 
 
     def is_tiled(self):
@@ -329,8 +329,8 @@ class HoudiniMantraWrapper(HaGraphItem):
         elif 'altus' in kwargs:
             self._kwargs['ifd_hash'] = self.get_jobname_hash()
             ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
-            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
-            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
+            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
+            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass2', **self._kwargs )
             altus = AltusBatchRender( mtr2.parms['output_picture'], job_data = ifd.parms['job_name'].data() )
             altus.add(mtr1,mtr2)
             self.append_instances( ifd, mtr1, mtr2, altus )
@@ -358,7 +358,7 @@ class HoudiniMantraWrapper(HaGraphItem):
                 join_tiles_action.add( *mantra_instances )
                 post_renders += [ join_tiles_action ]
 
-            if kwargs.get('make_movie', False) == True
+            if kwargs.get('make_movie', False) == True:
                 make_movie_action = BatchMp4( mtr1['output_picture']
                                           , job_data = ifd.parms['job_name'].data())
                 make_movie_action.add(mtr1)
