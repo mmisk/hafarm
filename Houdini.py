@@ -377,6 +377,7 @@ class HoudiniMantraWrapper(HaGraphItem):
             yield obj
 
 
+
 class HoudiniBaketexture(HbatchWrapper):
     def get_output_picture(self):
         return self.hou_node.parm('vm_uvoutputpicture1').eval()
