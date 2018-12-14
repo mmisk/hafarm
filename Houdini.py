@@ -141,7 +141,7 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
-                                        , 'scene_file_basename': self.parms['job_name']._data['job_basename']
+                                        , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.rs' }
         self.parms['job_name'] << { 'render_driver_type': 'redshift' }
 
@@ -319,11 +319,11 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
             self.parms['output_picture'] = kwargs.get('output_picture')
 
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
-                                        , 'scene_file_basename': self.parms['job_name']._data['job_basename']
+                                        , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.ifd' }
         self.parms['job_name'] << { 'render_driver_type': kwargs.get('render_driver_type', 'mantra') }
         self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
-        self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name']._data['render_driver_name'] }
+        self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
         if self._make_proxy == True:
             self.parms['command'] << {'proxy': ' --proxy '}
