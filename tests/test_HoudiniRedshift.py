@@ -158,12 +158,11 @@ class TestRenderPressed(unittest.TestCase):
             json_files = graph.render(json_output_directory=tmppath, copy_scene_file=True)
             json_files.sort()
 
-            self.assertEqual(len(json_files), 4, 'incorrect count files')
+            self.assertEqual(len(json_files), 3, 'incorrect count files')
 
-            json_expected_files = [ 'testRenderPressed.hip_YYY2_box_geometry.json'
-                                    ,'testRenderPressed.hip_YYY4_alembic_alembic.json'
-                                    ,'testRenderPressed.hip_YYY6_grid_ifd.json'
-                                    ,'testRenderPressed.hip_YYY6_grid_mantra.json' ]
+            json_expected_files = [  'testRedshiftRenderPressed.hip_YYY2_teapot_geometry.json'
+                                    ,'testRedshiftRenderPressed.hip_YYY4_teapotRS_redshift.json'
+                                    ,'testRedshiftRenderPressed.hip_YYY4_teapotRS_rs.json' ]
 
             json_expected_files.sort()
             self._test_files(json_expected_files, json_files)
