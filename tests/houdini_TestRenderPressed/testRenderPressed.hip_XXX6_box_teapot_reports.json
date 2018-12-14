@@ -1,7 +1,7 @@
 {
   "class_name": "BatchReportsMerger", 
   "inputs": [
-    "testRenderPressed.hip_XX18_grid_debug"
+    "testRenderPressed.hip_XXX6_box_teapot_debug"
   ], 
   "parms": {
     "req_resources": "", 
@@ -27,15 +27,15 @@
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX18_grid_reports", 
+    "job_name": "testRenderPressed.hip_XXX6_box_teapot_reports", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544605935.133008, 
-    "scene_file": "/tmp/render/debug/testRenderPressed.grid.*.exrjson", 
+    "submission_time": 1544605935.129234, 
+    "scene_file": "/tmp/render/debug/testRenderPressed.box_teapot.*.exrjson", 
     "ignore_check": true, 
     "job_current": "sandbox", 
     "req_license": "", 

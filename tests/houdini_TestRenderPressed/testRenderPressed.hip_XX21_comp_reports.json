@@ -1,8 +1,10 @@
 {
-  "class_name": "HoudiniAlembicWrapper", 
-  "inputs": [], 
+  "class_name": "BatchReportsMerger", 
+  "inputs": [
+    "testRenderPressed.hip_XX21_comp_debug"
+  ], 
   "parms": {
-    "req_resources": "procslots=0", 
+    "req_resources": "", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -10,7 +12,7 @@
     "include_list": [], 
     "job_asset_type": "user", 
     "frame_padding_length": 4, 
-    "slots": 0, 
+    "slots": 1, 
     "max_running_tasks": 1000, 
     "req_tmpdir": 32, 
     "exclude_list": [], 
@@ -19,38 +21,29 @@
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
-    "command_arg": [
-      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
-      "--ignore_tiles", 
-      "--generate_ifds", 
-      "-d /out/alembic"
-    ], 
-    "step_frame": 240, 
+    "command_arg": [], 
+    "step_frame": 1, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX11_alembic", 
+    "job_name": "testRenderPressed.hip_XX21_comp_reports", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "email_list": [
-      "s.nazarenko@human-ark.com"
-    ], 
-    "target_list": [
-      "/out/alembic"
-    ], 
+    "email_list": [], 
+    "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.854132, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX11_alembic.hip", 
-    "ignore_check": false, 
+    "submission_time": 1544784912.007872, 
+    "scene_file": "debug/mdjson", 
+    "ignore_check": true, 
     "job_current": "sandbox", 
-    "req_license": "hbatch_lic=1", 
+    "req_license": "", 
     "job_asset_name": "snazarenko", 
-    "end_frame": 240, 
+    "end_frame": 1, 
     "queue": "3d", 
-    "output_picture": "/tmp/output.abc", 
-    "command": "$HFS/bin/hython ", 
+    "output_picture": "", 
+    "command": "$HAFARM_HOME/scripts/generate_render_report.py --send_email --ifd_path /tmp/render/sungrid/ifd  --mad_threshold 5.0 --save_html  ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
@@ -58,10 +51,10 @@
     "tile_x": 1, 
     "tile_y": 1, 
     "frame_range_arg": [
-      "-f %s %s -i %s", 
-      "start_frame", 
-      "end_frame", 
-      1
+      "%s%s%s", 
+      "", 
+      "", 
+      ""
     ]
   }, 
   "backend_name": "HaGraph"

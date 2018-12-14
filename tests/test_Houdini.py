@@ -440,8 +440,8 @@ class TestRenderPressed(unittest.TestCase):
 
             json_expected_files = [ 'testRenderPressed.hip_YYY2_box_geometry.json'
                                     ,'testRenderPressed.hip_YYY4_alembic_alembic.json'
-                                    ,'testRenderPressed.hip_YYY7_grid_ifd.json'
-                                    ,'testRenderPressed.hip_YYY7_grid_mantra.json' ]
+                                    ,'testRenderPressed.hip_YYY6_grid_ifd.json'
+                                    ,'testRenderPressed.hip_YYY6_grid_mantra.json' ]
 
             json_expected_files.sort()
             self._test_files(json_expected_files, json_files)
@@ -462,23 +462,23 @@ class TestRenderPressed(unittest.TestCase):
 
             self.assertEqual(len(json_files), 17, 'incorrect count files')
 
-            json_expected_files = [ 'testRenderPressed.hip_XX15_alembic_alembic.json'
-                                    ,'testRenderPressed.hip_XX18_grid_debug.json'
-                                    ,'testRenderPressed.hip_XX18_grid_ifd.json'
-                                    ,'testRenderPressed.hip_XX18_grid_mantra.json'
-                                    ,'testRenderPressed.hip_XX18_grid_mp4.json'
-                                    ,'testRenderPressed.hip_XX18_grid_reports.json'
-                                    ,'testRenderPressed.hip_XX26_comp_comp.json'
-                                    ,'testRenderPressed.hip_XX26_comp_debug.json'
-                                    ,'testRenderPressed.hip_XX26_comp_mp4.json'
-                                    ,'testRenderPressed.hip_XX26_comp_reports.json'
+            json_expected_files = [ 'testRenderPressed.hip_XX13_alembic_alembic.json'
+                                    ,'testRenderPressed.hip_XX15_grid_debug.json'
+                                    ,'testRenderPressed.hip_XX15_grid_ifd.json'
+                                    ,'testRenderPressed.hip_XX15_grid_mantra.json'
+                                    ,'testRenderPressed.hip_XX15_grid_mp4.json'
+                                    ,'testRenderPressed.hip_XX15_grid_reports.json'
+                                    ,'testRenderPressed.hip_XX21_comp_comp.json'
+                                    ,'testRenderPressed.hip_XX21_comp_debug.json'
+                                    ,'testRenderPressed.hip_XX21_comp_mp4.json'
+                                    ,'testRenderPressed.hip_XX21_comp_reports.json'
                                     ,'testRenderPressed.hip_XXX2_teapot_geometry.json'
                                     ,'testRenderPressed.hip_XXX4_box_geometry.json'
-                                    ,'testRenderPressed.hip_XXX7_box_teapot_debug.json'
-                                    ,'testRenderPressed.hip_XXX7_box_teapot_ifd.json'
-                                    ,'testRenderPressed.hip_XXX7_box_teapot_mantra.json'
-                                    ,'testRenderPressed.hip_XXX7_box_teapot_mp4.json'
-                                    ,'testRenderPressed.hip_XXX7_box_teapot_reports.json' ]
+                                    ,'testRenderPressed.hip_XXX6_box_teapot_debug.json'
+                                    ,'testRenderPressed.hip_XXX6_box_teapot_ifd.json'
+                                    ,'testRenderPressed.hip_XXX6_box_teapot_mantra.json'
+                                    ,'testRenderPressed.hip_XXX6_box_teapot_mp4.json'
+                                    ,'testRenderPressed.hip_XXX6_box_teapot_reports.json' ]
         
             json_expected_files.sort()
             self._test_files(json_expected_files, json_files)

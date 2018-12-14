@@ -1,8 +1,8 @@
 {
   "class_name": "HoudiniIFDWrapper", 
   "inputs": [
-    "testRenderPressed.hip_YYY2_box", 
-    "testRenderPressed.hip_YYY4_alembic"
+    "testRenderPressed.hip_YYY2_box_geometry", 
+    "testRenderPressed.hip_YYY4_alembic_alembic"
   ], 
   "parms": {
     "req_resources": "procslots=0", 
@@ -24,10 +24,10 @@
     "hold_jid": [], 
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
-      "--ifd_name testRenderPressed.hip_YYY6_grid", 
       "--ignore_tiles", 
+      "-d /out/grid", 
       "--generate_ifds", 
-      "-d /out/grid"
+      "--ifd_name testRenderPressed.hip_YYY6_grid"
     ], 
     "step_frame": 8, 
     "req_start_time": 0.0, 
@@ -45,8 +45,8 @@
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544098769.967215, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_YYY6_grid_ifd.hip", 
+    "submission_time": 1544620429.562336, 
+    "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_YYY6_grid_ifd.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "req_license": "hbatch_lic=1", 
