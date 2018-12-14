@@ -111,7 +111,7 @@ class BatchReportsMerger(BatchBase):
 
 class BatchJoinTiles(BatchBase):
     """Creates a command specificly for merging tiled rendering with oiiotool."""
-    def __init__(self, filename, tiles_x, tiles_y, mask_filename, priority, *args, **kwargs):
+    def __init__(self, filename, tiles_x, tiles_y, priority, *args, **kwargs):
         """
         Args:
             filename (str):
@@ -125,7 +125,15 @@ class BatchJoinTiles(BatchBase):
         name = 'merge_tiles.py'
         tags = '/hafarm/merge_tiles'
         super(BatchJoinTiles, self).__init__(name, tags, *args, **kwargs)
-        self.parms['output_picture'] = filename
+
+        TILES_SUFFIX = "_tile%02d_"
+        
+        filepath, padding, ext = filename.rsplit('.',2)
+        path, basename = os.path.split(filepath)
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
+        output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
+
+        self.parms['output_picture'] = '.'.join([filepath, const.TASK_ID, ext])
         self.parms['scene_file'] << mask_filename
         self.parms['priority'] = priority
         self.parms['slots'] = 0

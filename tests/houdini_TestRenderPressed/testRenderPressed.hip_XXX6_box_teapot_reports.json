@@ -1,7 +1,7 @@
 {
-  "class_name": "BatchMp4", 
+  "class_name": "BatchReportsMerger", 
   "inputs": [
-    "testRenderPressed.hip_XX18_comp"
+    "testRenderPressed.hip_XXX6_box_teapot_debug"
   ], 
   "parms": {
     "req_resources": "", 
@@ -21,23 +21,21 @@
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
-    "command_arg": [
-      "-y -r 25 -i proxy/md.jpg -an -vcodec libx264 -vpre slow -crf 26 -threads 1 mdmp4"
-    ], 
+    "command_arg": [], 
     "step_frame": 1, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX18_comp_mp4", 
+    "job_name": "testRenderPressed.hip_XXX6_box_teapot_reports", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.851088, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX18_comp_mp4", 
+    "submission_time": 1544605935.129234, 
+    "scene_file": "/tmp/render/debug/testRenderPressed.box_teapot.*.exrjson", 
     "ignore_check": true, 
     "job_current": "sandbox", 
     "req_license": "", 
@@ -45,7 +43,7 @@
     "end_frame": 1, 
     "queue": "3d", 
     "output_picture": "", 
-    "command": "ffmpeg  ", 
+    "command": "$HAFARM_HOME/scripts/generate_render_report.py --send_email --ifd_path /tmp/render/sungrid/ifd  --mad_threshold 5.0 --save_html  ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
