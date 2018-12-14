@@ -119,7 +119,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
         self.parms['queue'] = 'cuda'
-        self.parms['job_name'] << { 'jobname_hash': kwargs.get('ifd_hash'), 'render_driver_type': 'rs' }
+        self.parms['job_name'] << { 'jobname_hash': self.get_jobname_hash(), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
@@ -130,9 +130,9 @@ class HoudiniRSWrapper(HbatchWrapper):
 
 
 
-class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
+class HoudiniRedshiftROP(HoudiniNodeWrapper):
     def __init__(self, index, path, depends, **kwargs):
-        super(HoudiniRedshiftROPWrapper, self).__init__(index, path, depends, **kwargs)
+        super(HoudiniRedshiftROP, self).__init__(index, path, depends, **kwargs)
         self.name += '_redshift'
         self.parms['queue'] = 'cuda' 
         self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
@@ -150,20 +150,6 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
             self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
 
-    def __iter__(self):
-        self._kwargs['ifd_hash'] = self.get_jobname_hash()
-        rs = HoudiniRSWrapper(str(uuid4()), self.path, [x for x in self.dependencies], **self._kwargs)
-        self._instances += [rs]
-        yield rs
-
-        # pieces = [self.index] + map(lambda _: str(uuid4()), self._slices)[1:]
-        for n in pieces:
-            rsrop = HoudiniRedshiftROPWrapper(n, self.path, [rs.index], **self._kwargs)
-            self._instances += [rsrop]
-            rsrop._instances = self._instances
-            yield rsrop
-
-
     def get_output_picture(self):
         return self.hou_node.parm('RS_outputFileNamePrefix').eval()
 
@@ -175,6 +161,63 @@ class HoudiniRedshiftROPWrapper(HoudiniNodeWrapper):
             and copyfile function mess up it
         '''
         pass
+
+
+class HoudiniRedshiftROPWrapper(object):
+    def __init__(self, index, path, depends, **kwargs):
+        self._items = []
+        self._kwargs = kwargs
+        self._path = path
+
+        ifd = HoudiniRSWrapper( index, path, depends, **self._kwargs )
+        self.append_instances( ifd )
+        group_hash = ifd.parms['job_name'].data()['jobname_hash']
+        last_node = None
+
+        mtr1 = HoudiniRedshiftROP( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
+        self.append_instances( mtr1 )
+        last_node = mtr1
+
+        if kwargs.get('make_movie', False) == True:
+            make_movie_action = BatchMp4( mtr1.parms['output_picture']
+                                      , job_data = ifd.parms['job_name'].data()
+                                      , ifd_hash = group_hash)
+            make_movie_action.add( mtr1 )
+            self.append_instances( make_movie_action )
+
+        if kwargs.get('debug_images', False) == True:
+            debug_render = BatchDebug( mtr1.parms['output_picture']
+                                        , job_data = mtr1.parms['job_name'].data()
+                                        , start = mtr1.parms['start_frame']
+                                        , end = mtr1.parms['end_frame']
+                                        , ifd_hash = group_hash )
+            debug_render.add( mtr1 )
+            merger = BatchReportsMerger( mtr1.parms['output_picture']
+                                    , job_data = mtr1.parms['job_name'].data()
+                                    , ifd_hash = group_hash
+                                    , **kwargs )
+            merger.add( debug_render )
+            self.append_instances( debug_render, merger )
+
+        for k, m in houdini_dependencies.iteritems():
+            if ifd.index in m:
+                m.remove(ifd.index)
+                m += [last_node.index]
+
+
+    def append_instances(self, *args):
+        self._items += args
+
+
+    def graph_items(self, class_type_filter = None):
+        if class_type_filter == None:
+            return self._items
+        return filter(lambda x: isinstance(x, class_type_filter), self._items)
+
+
+    def __iter__(self):
+        for obj in self.graph_items():
+            yield obj
 
 
 
@@ -437,6 +480,7 @@ class HoudiniComposite(HbatchWrapper):
 
     def get_output_picture(self):
         return self.hou_node.parm('copoutput').eval()
+
 
 
 class HoudiniCompositeWrapper(object):
