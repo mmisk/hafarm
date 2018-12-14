@@ -1,0 +1,63 @@
+{
+  "class_name": "HoudiniRedshiftROP", 
+  "inputs": [
+    "testRedshiftRenderPressed.hip_YYY4_teapotRS_rs"
+  ], 
+  "parms": {
+    "req_resources": "", 
+    "log_path": "$JOB/render/sungrid/log", 
+    "cpu_share": 1.0, 
+    "frame_list": "", 
+    "rerun_on_error": true, 
+    "include_list": [], 
+    "job_asset_type": "user", 
+    "frame_padding_length": 4, 
+    "slots": 0, 
+    "max_running_tasks": 1000, 
+    "req_tmpdir": 32, 
+    "exclude_list": [], 
+    "group": "", 
+    "req_memory": 0, 
+    "hold_jid_ad": [], 
+    "post_render_script": "", 
+    "hold_jid": [], 
+    "command_arg": [], 
+    "step_frame": 1, 
+    "req_start_time": 0.0, 
+    "priority": -500, 
+    "make_proxy": false, 
+    "email_stderr": false, 
+    "job_name": "testRedshiftRenderPressed.hip_YYY4_teapotRS_redshift", 
+    "email_stdout": false, 
+    "start_frame": 1, 
+    "email_list": [
+      "s.nazarenko@human-ark.com"
+    ], 
+    "target_list": [], 
+    "layer_list": [], 
+    "user": "snazarenko", 
+    "submission_time": 1544787278.419402, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRedshiftRenderPressed.hip_YYY4_teapotRS.@TASK_ID/>.rs", 
+    "ignore_check": false, 
+    "job_current": "sandbox", 
+    "req_license": "redshift_lic=1", 
+    "job_asset_name": "snazarenko", 
+    "end_frame": 48, 
+    "queue": "cuda", 
+    "output_picture": "/tmp/render/testRedshiftRenderPressed.teapotRS.0001.exr", 
+    "command": "$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine ", 
+    "pre_render_script": "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib", 
+    "job_on_hold": false, 
+    "email_opt": "", 
+    "script_path": "$JOB/render/sungrid/jobScript", 
+    "tile_x": 1, 
+    "tile_y": 1, 
+    "frame_range_arg": [
+      "%s%s%s", 
+      "", 
+      "", 
+      ""
+    ]
+  }, 
+  "backend_name": "HaGraph"
+}
