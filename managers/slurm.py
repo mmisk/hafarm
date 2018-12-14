@@ -191,7 +191,7 @@ class Slurm(RenderManager):
         result['_create_job_script']      = self._create_job_script()
         result['_create_submit_command']  = self._create_submit_command()
         if dryrun == False:
-            result['_submit_job']             = self._submit_job()
+            result['_submit_job']         = self._submit_job()
         return result
 
 

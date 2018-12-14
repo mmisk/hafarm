@@ -72,19 +72,6 @@ class HaGraphItem(object):
         return self.dependencies
 
 
-    def pre_schedule(self):
-        """ This method is called automatically before job submission by HaFarm.
-            Up to now:
-            1) All information should be aquired from host application.
-            2) They should be placed in HaFarmParms class (self.parms).
-            3) Scene should be ready to be copied to handoff location.
-            
-            Main purpose is to prepare anything specific that HaFarm might not know about, 
-            like renderer command and arguments used to render on farm's machines.
-        """
-        pass
-
-
     def copy_scene_file(self, **kwargs):
         """Makes a copy of a scene file.
         """
@@ -179,7 +166,6 @@ class HaGraph(object):
         for x in self.graph_items:
             if kwargs.get('copy_scene_file',True) == True:
                 x.copy_scene_file()
-            x.pre_schedule()
             graph_items.update( {x.index: x} )
 
         json_files = []
@@ -191,7 +177,7 @@ class HaGraph(object):
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'HaGraph'
             _db['parms'] = item.parms
-            parms_file = kwargs.get( 'json_output_directory' , os.path.expandvars(item.parms['script_path']) )
+            parms_file = kwargs.get( 'json_output_directory', os.path.expandvars(item.parms['script_path']) )
             parms_file = os.path.join(parms_file, str(item.parms['job_name'])) + '.json'
             json_files += [ parms_file ]
             with open(parms_file, 'w') as file:

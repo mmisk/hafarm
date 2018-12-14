@@ -1,10 +1,8 @@
 {
-  "class_name": "HoudiniMantraWrapper", 
-  "inputs": [
-    "testRenderPressed.hip_XX13_grid_ifd"
-  ], 
+  "class_name": "HoudiniGeometryWrapper", 
+  "inputs": [], 
   "parms": {
-    "req_resources": "", 
+    "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -22,36 +20,36 @@
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      "-j", 
-      "0", 
-      "-V1", 
-      "-f", 
-      "@SCENE_FILE/>"
+      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
+      "--ignore_tiles", 
+      "-d /out/teapot"
     ], 
-    "step_frame": 1, 
+    "step_frame": 8, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX13_grid_mantra", 
+    "job_name": "testRedshiftRenderPressed.hip_YYY2_teapot_geometry", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
-    "target_list": [], 
+    "target_list": [
+      "/out/teapot"
+    ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.853823, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderPressed.hip_XX13_grid.@TASK_ID/>.ifd", 
+    "submission_time": 1544787278.418321, 
+    "scene_file": "/tmp/render/sungrid/jobScript/testRedshiftRenderPressed.hip_YYY2_teapot_geometry.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "req_license": "mantra_lic=1", 
+    "req_license": "hbatch_lic=1", 
     "job_asset_name": "snazarenko", 
     "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "$HFS/bin/mantra  -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py  --proxy  \"", 
+    "output_picture": "/tmp/geo/testRedshiftRenderPressed.teapot.1.bgeo.sc", 
+    "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
@@ -59,10 +57,10 @@
     "tile_x": 1, 
     "tile_y": 1, 
     "frame_range_arg": [
-      "%s%s%s", 
-      "", 
-      "", 
-      ""
+      "-f %s %s -i %s", 
+      "start_frame", 
+      "end_frame", 
+      1
     ]
   }, 
   "backend_name": "HaGraph"

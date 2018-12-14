@@ -82,6 +82,43 @@ class HoudiniNodeWrapper(HaGraphItem):
         return  int(self.rop.parm('f2').eval()) if self._kwargs.get('use_one_slot') else self._kwargs.get('step_frame')
 
 
+<<<<<<< HEAD
+    def _proxy_post_render(self):
+        post_renders = []
+        self.parms['command'] << {'proxy': ' --proxy '}
+
+        if self._make_movie == True:
+            make_movie_action = BatchMp4( self.parms['output_picture']
+                                          , job_data = self.parms['job_name'].data())
+            make_movie_action.add(self)
+            post_renders += [ make_movie_action ]
+
+        return post_renders
+
+
+    def _debug_post_render(self):
+        post_renders = []
+
+        debug_render = BatchDebug( self.parms['output_picture']
+                                    , job_data = self.parms['job_name'].data()
+                                    , start = self.parms['start_frame']
+                                    , end = self.parms['end_frame'] )
+        debug_render.add(self)
+        post_renders += [ debug_render ]
+
+        ifd_path = os.path.join(os.getenv("JOB"), 'render/sungrid/ifd')
+        
+        merger = BatchReportsMerger( self.parms['output_picture']
+                                        , job_data = self.parms['job_name'].data()
+                                        , ifd_path = ifd_path
+                                        , resend_frames = self._resend_frames )
+        merger.add(debug_render)
+        post_renders += [ merger ]
+        return post_renders
+
+
+=======
+>>>>>>> new_graph_approach
 
 class HbatchWrapper(HoudiniNodeWrapper):
     """docstring for HaMantraWrapper"""

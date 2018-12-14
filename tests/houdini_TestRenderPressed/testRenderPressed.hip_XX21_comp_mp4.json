@@ -1,7 +1,7 @@
 {
-  "class_name": "BatchDebug", 
+  "class_name": "BatchMp4", 
   "inputs": [
-    "testRenderPressed.hip_XX26_comp_comp"
+    "testRenderPressed.hip_XX21_comp_comp"
   ], 
   "parms": {
     "req_resources": "", 
@@ -11,7 +11,7 @@
     "rerun_on_error": true, 
     "include_list": [], 
     "job_asset_type": "user", 
-    "frame_padding_length": 0, 
+    "frame_padding_length": 4, 
     "slots": 1, 
     "max_running_tasks": 1000, 
     "req_tmpdir": 32, 
@@ -22,31 +22,31 @@
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      ""
+      "-y -r 25 -i proxy/md.jpg -an -vcodec libx264 -vpre slow -crf 26 -threads 1 mdmp4"
     ], 
     "step_frame": 1, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX26_comp_debug", 
+    "job_name": "testRenderPressed.hip_XX21_comp_mp4", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544605935.124474, 
-    "scene_file": "md@TASK_ID_PADDED/>", 
+    "submission_time": 1544605935.125555, 
+    "scene_file": "/", 
     "ignore_check": true, 
     "job_current": "sandbox", 
     "req_license": "", 
     "job_asset_name": "snazarenko", 
-    "end_frame": 10, 
+    "end_frame": 1, 
     "queue": "3d", 
     "output_picture": "", 
-    "command": "$HAFARM_HOME/scripts/debug_images.py --job testRenderPressed.hip_XX26_comp_comp --save_json -i  ", 
-    "pre_render_script": "mkdir -p debug", 
+    "command": "ffmpeg  ", 
+    "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
