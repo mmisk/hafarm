@@ -37,7 +37,7 @@
 	{% if group != "allhosts" %}#SBATCH  -C {{ group }}{% endif %}
 {%- endif %}
 
-HAFARM_VERSION=v0.3.1
+HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
 RANGE_FRAME=$[${SLURM_ARRAY_TASK_ID}+{{ step_frame }}]
 if ((${RANGE_FRAME}>${LAST_FRAME})); then RANGE_FRAME=${LAST_FRAME}; fi
