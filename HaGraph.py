@@ -9,7 +9,7 @@ import random
 import string
 import json
 from const import ConstantItemJSONEncoder
-from const import HaConstant
+from hafarm import HaConstant
 
 
 class HaGraphDependency(list):
