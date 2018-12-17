@@ -132,6 +132,7 @@ class HaGraphItem(object):
 def expand(val, dict_):
     if isinstance(val, HaConstant):
         val.set_parms(dict_)
+        return val._default
     return val
 
 
