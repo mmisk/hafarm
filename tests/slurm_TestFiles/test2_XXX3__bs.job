@@ -20,10 +20,10 @@ echo Slots:        $NSLOTS
 echo Memory stats: `egrep 'Mem|Cache|Swap' /proc/meminfo`
 echo Scene file  : /tmp/test2
 
-touch   /tmp/test2
+touch  /tmp/test2
 exit_code=$?
 
 echo Render ends: `date`
 echo Render target: ""
-echo Command was: touch   /tmp/test2
+echo Command was: touch  /tmp/test2
 exit $exit_code

@@ -58,6 +58,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
         self.parms['job_on_hold'] = kwargs['job_on_hold']
         self.parms['priority'] = kwargs['priority']
+        self.parms['queue'] = kwargs['queue']
+        self.parms['group'] = kwargs['group']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -89,7 +91,7 @@ class HbatchWrapper(HoudiniNodeWrapper):
         super(HbatchWrapper, self).__init__(index, path, depends, **kwargs)
         use_frame_list = kwargs.get('use_frame_list')
 
-        self.parms['command'] << { 'command': '$HFS/bin/hython' }
+        self.parms['exe'] = '$HFS/bin/hython'
         self.parms['command_arg'] = [kwargs.get('command_arg')]
         self.parms['req_license'] = 'hbatch_lic=1' 
         self.parms['req_resources'] = 'procslots=%s' % kwargs.get('hbatch_slots')
@@ -135,7 +137,7 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         super(HoudiniRedshiftROP, self).__init__(index, path, depends, **kwargs)
         self.name += '_redshift'
         self.parms['queue'] = 'cuda' 
-        self.parms['command'] << { 'command': '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine' }
+        self.parms['exe'] = '$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine'
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
@@ -229,7 +231,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         self.parms['job_name'] << { 'jobname_hash': self.get_jobname_hash(), 'render_driver_type': 'ifd' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
-        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" %  ifd_name ]
+        self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" % ifd_name ]
 
 
     def get_output_picture(self):
@@ -250,7 +252,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
             self.parms['command_arg'] = ['-j', str(threads)]
 
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
-        self.parms['command'] << { 'command': '$HFS/bin/mantra' }
+        self.parms['exe'] = '$HFS/bin/mantra'
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
         self.parms['slots'] = threads
         self.parms['req_license'] = 'mantra_lic=1'
@@ -286,8 +288,9 @@ class AltusBatchRender(BatchBase):
         inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
-        self.parms['command'] << {'command': 'altus '}
+        self.parms['exe'] = 'altus '
         self.parms['job_name'] << { 'render_driver_type': 'altus' }
+        self.parms['command'] << '{exe} -f {scene_file} -t {tile_x} {output_picture}'
     
 
 
@@ -307,10 +310,12 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
             self._tiles_x = self.hou_node.parm('vm_tile_count_x').eval()
             self._tiles_y = self.hou_node.parm('vm_tile_count_y').eval()
         else:
-            self.parms['command'] << { 'mantra_filter': mantra_filter }
+            if self._make_proxy == True:
+                mantra_filter += ' --proxy '
+            self.parms['command'] << '{exe} -P "%s" {command_arg} {scene_file}' % mantra_filter
         self.parms['tile_x'] = self._tiles_x
         self.parms['tile_y'] = self._tiles_y
-        self.parms['command'] << { 'command' : '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval()) }
+        self.parms['exe'] = '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval())
         self.parms['start_frame'] = frame if frame else int(self.hou_node.parm('f1').eval())
         self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
 
@@ -321,14 +326,12 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.ifd' }
-        self.parms['job_name'] << { 'render_driver_type': kwargs.get('render_driver_type', 'mantra') }
-        self.parms['job_name'] << { 'jobname_hash': kwargs['ifd_hash'] }
+        self.parms['job_name'] << { 'render_driver_type': kwargs.get('render_driver_type', 'mantra')
+                                    ,'jobname_hash': kwargs['ifd_hash'] }
         self.parms['scene_file'] << { 'scene_file_hash': kwargs['ifd_hash'] + '_' + self.parms['job_name'].data()['render_driver_name'] }
 
-        if self._make_proxy == True:
-            self.parms['command'] << {'proxy': ' --proxy '}
         if self._vm_tile_render == True:
-            self.parms['job_name'] << { 'tiles' : True }
+            self.parms['job_name'] << { 'tiles': True }
         if kwargs.get('frame') != None:
             self.parms['job_name'] += { 'render_driver_type': kwargs.get('render_driver_type', 'mantra_frame%s' % kwargs.get('frame')) }
 
@@ -359,7 +362,6 @@ class HoudiniMantraWrapper(object):
 
         if kwargs['frames'] != [1]:
             frames = kwargs.get('frames')
-            
             for frame in frames:
                 mtr = HoudiniMantraWrapper(str(uuid4()), self._path, [ifd.index], frame=frame, **self._kwargs)
                 self.append_instances( mtr )
@@ -368,7 +370,6 @@ class HoudiniMantraWrapper(object):
                 if ifd.index in m:
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
-
         elif 'altus' in kwargs:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
@@ -376,7 +377,6 @@ class HoudiniMantraWrapper(object):
             altus.add(mtr1,mtr2)
             self.append_instances( mtr1, mtr2, altus )
             last_node = altus
-
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             self.append_instances( mtr1 )
