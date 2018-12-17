@@ -32,6 +32,7 @@ class BatchBase(HaGraphItem):
         pass
 
 
+
 class BatchMp4(BatchBase):
     def __init__(self, filename, *args, **kwargs):
         name = 'ffmpeg'
