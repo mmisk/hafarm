@@ -24,7 +24,7 @@ class BatchBase(HaGraphItem):
         self.parms['req_resources'] = ''
         self.parms['start_frame'] = 1
         self.parms['end_frame'] = 1
-        self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash() }
+        self.parms['job_name'] << { 'job_basename' : self.name, 'jobname_hash' : self.get_jobname_hash(), 'render_driver_type': 'bs' }
         if 'job_data' in kwargs:
             self.parms['job_name'] << kwargs['job_data']
 
@@ -43,7 +43,7 @@ class BatchMp4(BatchBase):
         inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
-        self.parms['command'] << {'command': 'ffmpeg '}
+        self.parms['exe'] = 'ffmpeg'
         self.parms['job_name'] << { 'render_driver_type': 'mp4' }
 
 
@@ -60,7 +60,6 @@ class BatchDebug(BatchBase):
         name = 'debug_images.py'
         tags = '/hafarm/debug_images'
         super(BatchDebug, self).__init__(name, tags, *args, **kwargs)
-        self.parms['command_arg'] = ['']
         self.parms['start_frame'] = kwargs.get('start', 1)
         self.parms['end_frame'] = kwargs.get('end', 1)
         scene_file_path, _, frame_padding_length, ext = utils.padding(filename)
@@ -68,7 +67,8 @@ class BatchDebug(BatchBase):
         path = os.path.join(path, const.DEBUG_POSTFIX)
         self.parms['pre_render_script'] = 'mkdir -p %s' % path
         self.parms['scene_file'] << { 'scene_fullpath' : scene_file_path + const.TASK_ID_PADDED + ext }
-        self.parms['command'] << {'command': '$HAFARM_HOME/scripts/debug_images.py --job %s --save_json -i ' % self.parms['job_name']}
+        self.parms['exe'] = '$HAFARM_HOME/scripts/debug_images.py'
+        self.parms['command_arg'] = ['--job %s'%self.parms['job_name'], '--save_json -i'] 
         self.parms['frame_padding_length'] = int(frame_padding_length)
         self.parms['job_name'] << { 'render_driver_type': 'debug' }
 
@@ -102,16 +102,13 @@ class BatchReportsMerger(BatchBase):
         log_path = os.path.join(path, const.DEBUG_POSTFIX)
         self.parms['job_name'] << { 'render_driver_type': 'reports' }
         self.parms['scene_file'] << { 'scene_file_path': log_path, 'scene_file_basename': scene_file_path, 'scene_file_ext': 'json' }
-        self.parms['command'] << {'command': '$HAFARM_HOME/scripts/generate_render_report.py %s %s %s --mad_threshold %s --save_html ' % (send_email,
-                     ifd_path,
-                     resend_frames,
-                     mad_threshold)}
-
+        self.parms['exe'] = '$HAFARM_HOME/scripts/generate_render_report.py'
+        self.parms['command_arg'] = [ send_email, ifd_path, resend_frames, "--mad_threshold %s" % (mad_threshold),"--save_html"]
 
 
 class BatchJoinTiles(BatchBase):
     """Creates a command specificly for merging tiled rendering with oiiotool."""
-    def __init__(self, filename, tiles_x, tiles_y, mask_filename, priority, *args, **kwargs):
+    def __init__(self, filename, tiles_x, tiles_y, priority, *args, **kwargs):
         """
         Args:
             filename (str):
@@ -125,7 +122,15 @@ class BatchJoinTiles(BatchBase):
         name = 'merge_tiles.py'
         tags = '/hafarm/merge_tiles'
         super(BatchJoinTiles, self).__init__(name, tags, *args, **kwargs)
-        self.parms['output_picture'] = filename
+
+        TILES_SUFFIX = "_tile%02d_"
+        
+        filepath, padding, ext = filename.rsplit('.',2)
+        path, basename = os.path.split(filepath)
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
+        output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
+
+        self.parms['output_picture'] = '.'.join([filepath, const.TASK_ID, ext])
         self.parms['scene_file'] << mask_filename
         self.parms['priority'] = priority
         self.parms['slots'] = 0
@@ -141,7 +146,6 @@ class BatchJoinTiles(BatchBase):
                                         ,'-o %s' % filename
                                         ,'-m %s' % self.parms['scene_file']
                                     ]
-                                
-        self.parms['command'] << {'command': 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py' }
+        self.parms['exe'] = 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py'
 
 

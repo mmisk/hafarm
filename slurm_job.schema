@@ -37,7 +37,7 @@
 	{% if group != "allhosts" %}#SBATCH  -C {{ group }}{% endif %}
 {%- endif %}
 
-HAFARM_VERSION=v0.3.1
+HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
 RANGE_FRAME=$[${SLURM_ARRAY_TASK_ID}+{{ step_frame }}]
 if ((${RANGE_FRAME}>${LAST_FRAME})); then RANGE_FRAME=${LAST_FRAME}; fi
@@ -54,7 +54,7 @@ echo Scene file  : {{ scene_file }}
 {{ pre_render_script }}
 {%- endif %}
 
-{{ command }} {{ command_arg|join(' ') }} {{ scene_file }}
+{{ command }}
 exit_code=$?
 
 {%- if post_render_script %}
@@ -63,5 +63,5 @@ exit_code=$?
 
 echo Render ends: `date`
 echo Render target: "{{ output_picture }}"
-echo Command was: {{ command }} {{ command_arg|join(' ') }} {{ scene_file }}
+echo Command was: {{ command }}
 exit $exit_code

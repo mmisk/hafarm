@@ -107,12 +107,13 @@ class Slurm(RenderManager):
             # get_jobids_by_name returns a list: [jobid, ...]
             deps = [self.get_jobid_by_name(name) for name in deps]
             # Flattern array of arrays:
-            deps = [str(item) for sublist in deps for item in sublist]
+            deps = list(set([str(item) for sublist in deps for item in sublist]))
             self.parms['slurm_aftercorr'] = deps
 
-        cmd = str(self.parms['command'])
-        self.parms['command'] = os.path.expandvars(cmd)
+        # cmd = str(self.parms['command'])
+        # self.parms['command'] = os.path.expandvars(cmd)
         self.parms['scene_file'] << { 'scene_fullpath': scene_file }
+
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
 
         slurm_template = None
@@ -121,14 +122,13 @@ class Slurm(RenderManager):
         else:
             slurm_template = TEMPLATE_ENVIRONMENT.get_template('slurm_job.schema')
         
-        rendered = slurm_template.render(self.parms)
+        rendered = slurm_template.render(self.parms,env=os.environ)
 
         with open(script_path, 'w') as file:
             file.write(rendered)
         
         # As a convention we return a dict with function's proper value or None
         return script_path
-
 
 
     def _create_submit_command(self):
@@ -192,7 +192,7 @@ class Slurm(RenderManager):
         result['_create_job_script']      = self._create_job_script()
         result['_create_submit_command']  = self._create_submit_command()
         if dryrun == False:
-            result['_submit_job']             = self._submit_job()
+            result['_submit_job']         = self._submit_job()
         return result
 
 

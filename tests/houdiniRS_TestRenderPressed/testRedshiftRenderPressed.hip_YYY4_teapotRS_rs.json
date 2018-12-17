@@ -1,6 +1,8 @@
 {
-  "class_name": "HoudiniGeometryWrapper", 
-  "inputs": [], 
+  "class_name": "HoudiniRSWrapper", 
+  "inputs": [
+    "testRedshiftRenderPressed.hip_YYY2_teapot_geometry"
+  ], 
   "parms": {
     "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
@@ -22,34 +24,35 @@
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
       "--ignore_tiles", 
+      "-d /out/teapotRS", 
       "--generate_ifds", 
-      "-d /out/teapot"
+      "--ifd_name testRedshiftRenderPressed.hip_YYY4_teapotRS"
     ], 
     "step_frame": 8, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XXX2_teapot", 
+    "job_name": "testRedshiftRenderPressed.hip_YYY4_teapotRS_rs", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
     "target_list": [
-      "/out/teapot"
+      "/out/teapotRS"
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.852934, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XXX2_teapot.hip", 
+    "submission_time": 1544787278.418858, 
+    "scene_file": "/tmp/render/sungrid/jobScript/testRedshiftRenderPressed.hip_YYY4_teapotRS_rs.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "req_license": "hbatch_lic=1", 
+    "req_license": "hbatch_lic=1,redshift_lic=1", 
     "job_asset_name": "snazarenko", 
     "end_frame": 240, 
-    "queue": "3d", 
-    "output_picture": "/tmp/geo/testRenderPressed.teapot.1.bgeo.sc", 
+    "queue": "cuda", 
+    "output_picture": "/tmp/render/testRedshiftRenderPressed.teapotRS.0001.exr", 
     "command": "$HFS/bin/hython ", 
     "pre_render_script": "", 
     "job_on_hold": false, 
