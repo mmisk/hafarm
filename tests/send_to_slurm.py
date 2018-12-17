@@ -1,3 +1,11 @@
+
+"""
+Make test:
+python hafarm/tests/send_to_slurm.py
+
+"""
+
+
 from contextlib import contextmanager
 import os
 import shutil
@@ -185,7 +193,7 @@ class TestTmpSlurm(unittest.TestCase):
 
             self._test_files(expected_files, actual_files, generated_directory)
 
-            
+
 
 def run():
     for test in [TestTmpSlurm]: 
