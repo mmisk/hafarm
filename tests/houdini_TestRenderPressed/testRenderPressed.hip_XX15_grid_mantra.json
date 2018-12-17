@@ -1,7 +1,7 @@
 {
-  "class_name": "HoudiniMantraWrapper", 
+  "class_name": "HoudiniMantra", 
   "inputs": [
-    "testRenderPressed.hip_XX13_grid_ifd"
+    "testRenderPressed.hip_XX15_grid_ifd"
   ], 
   "parms": {
     "req_resources": "", 
@@ -10,11 +10,11 @@
     "frame_list": "", 
     "rerun_on_error": true, 
     "include_list": [], 
-    "job_asset_type": "user", 
+    "job_asset_type": "Not_Set", 
     "frame_padding_length": 4, 
     "slots": 0, 
     "max_running_tasks": 1000, 
-    "req_tmpdir": 32, 
+    "req_start_time": 0.0, 
     "exclude_list": [], 
     "group": "", 
     "req_memory": 0, 
@@ -29,41 +29,42 @@
       "@SCENE_FILE/>"
     ], 
     "step_frame": 1, 
-    "req_start_time": 0.0, 
+    "req_tmpdir": 32, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX13_grid_mantra", 
+    "job_name": "testRenderPressed.hip_XX15_grid_mantra", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "email_list": [
-      "s.nazarenko@human-ark.com"
-    ], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.853823, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderPressed.hip_XX13_grid.@TASK_ID/>.ifd", 
+    "submission_time": 1545057144.514938, 
+    "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_XX15_grid.@TASK_ID/>.ifd", 
     "ignore_check": false, 
-    "job_current": "sandbox", 
+    "job_current": "Not_Set", 
+    "exe": "$HFS/bin/mantra", 
+    "email_list": [
+      "s.nazarenko@human-ark.com"
+    ], 
+    "job_asset_name": "Not_Set", 
     "req_license": "mantra_lic=1", 
-    "job_asset_name": "snazarenko", 
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "$HFS/bin/mantra  -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py  --proxy  \"", 
+    "command": "$HFS/bin/mantra -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py --proxy \" -j 0 -V1 -f @SCENE_FILE/> /tmp/render/sungrid/ifd/testRenderPressed.hip_XX15_grid.@TASK_ID/>.ifd", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
-    "tile_x": 1, 
-    "tile_y": 1, 
     "frame_range_arg": [
       "%s%s%s", 
       "", 
       "", 
       ""
-    ]
+    ], 
+    "tile_y": 1, 
+    "tile_x": 1
   }, 
   "backend_name": "HaGraph"
 }

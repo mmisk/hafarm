@@ -4,6 +4,6 @@
     ,"scene_file" : {% if scene_fullpath -%}
     					"{{ scene_fullpath }}"
    					{%- else -%}
-    					"{{ scene_file_path }}/{{ scene_file_basename }}{% if scene_file_hash %}_{{ scene_file_hash }}.@TASK_ID/>{% endif %}{{ scene_file_ext }}"
+    					"{{ scene_file_path }}/{{ scene_file_basename }}{% if scene_file_hash %}_{{ scene_file_hash }}.{{ TASK_ID }}{% endif %}{{ scene_file_ext }}"
     				{%- endif %}
 }

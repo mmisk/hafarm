@@ -1,11 +1,10 @@
 {
-  "class_name": "HoudiniIFDWrapper", 
+  "class_name": "HoudiniRedshiftROP", 
   "inputs": [
-    "testRenderPressed.hip_YYY2_box_geometry", 
-    "testRenderPressed.hip_YYY4_alembic_alembic"
+    "testRedshiftRenderPressed.hip_YYY4_teapotRS_rs"
   ], 
   "parms": {
-    "req_resources": "procslots=0", 
+    "req_resources": "", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -22,50 +21,42 @@
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
-    "command_arg": [
-      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
-      "--ignore_tiles", 
-      "--generate_ifds", 
-      "-d /out/grid", 
-      "--ifd_name testRenderPressed.hip_YYY7_grid"
-    ], 
-    "step_frame": 8, 
+    "command_arg": [], 
+    "step_frame": 1, 
     "req_start_time": 0.0, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_YYY7_grid_ifd", 
+    "job_name": "testRedshiftRenderPressed.hip_YYY4_teapotRS_redshift", 
     "email_stdout": false, 
     "start_frame": 1, 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
-    "target_list": [
-      "/out/grid"
-    ], 
+    "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544107209.236682, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_YYY7_grid_ifd.hip", 
+    "submission_time": 1544787278.419402, 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRedshiftRenderPressed.hip_YYY4_teapotRS.@TASK_ID/>.rs", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "req_license": "hbatch_lic=1", 
+    "req_license": "redshift_lic=1", 
     "job_asset_name": "snazarenko", 
-    "end_frame": 240, 
-    "queue": "3d", 
-    "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "$HFS/bin/hython ", 
-    "pre_render_script": "", 
+    "end_frame": 48, 
+    "queue": "cuda", 
+    "output_picture": "/tmp/render/testRedshiftRenderPressed.teapotRS.0001.exr", 
+    "command": "$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine ", 
+    "pre_render_script": "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
     "tile_x": 1, 
     "tile_y": 1, 
     "frame_range_arg": [
-      "-f %s %s -i %s", 
-      "start_frame", 
-      "end_frame", 
-      1
+      "%s%s%s", 
+      "", 
+      "", 
+      ""
     ]
   }, 
   "backend_name": "HaGraph"

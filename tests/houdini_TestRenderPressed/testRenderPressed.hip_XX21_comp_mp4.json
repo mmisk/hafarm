@@ -1,7 +1,7 @@
 {
-  "class_name": "BatchDebug", 
+  "class_name": "BatchMp4", 
   "inputs": [
-    "testRenderPressed.hip_XX18_comp"
+    "testRenderPressed.hip_XX21_comp_comp"
   ], 
   "parms": {
     "req_resources": "", 
@@ -10,11 +10,11 @@
     "frame_list": "", 
     "rerun_on_error": true, 
     "include_list": [], 
-    "job_asset_type": "user", 
-    "frame_padding_length": 0, 
+    "job_asset_type": "Not_Set", 
+    "frame_padding_length": 4, 
     "slots": 1, 
     "max_running_tasks": 1000, 
-    "req_tmpdir": 32, 
+    "req_start_time": 0.0, 
     "exclude_list": [], 
     "group": "", 
     "req_memory": 0, 
@@ -22,42 +22,43 @@
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      ""
+      "-y -r 25 -i proxy/md.jpg -an -vcodec libx264 -vpre slow -crf 26 -threads 1 mdmp4"
     ], 
     "step_frame": 1, 
-    "req_start_time": 0.0, 
+    "req_tmpdir": 32, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX18_comp_debug", 
+    "job_name": "testRenderPressed.hip_XX21_comp_mp4", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "email_list": [], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544101253.852039, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/jobScript/testRenderPressed.hip_XX18_comp_debug", 
+    "submission_time": 1545057144.510856, 
+    "scene_file": "/", 
     "ignore_check": true, 
-    "job_current": "sandbox", 
+    "job_current": "Not_Set", 
+    "exe": "ffmpeg", 
+    "email_list": [], 
+    "job_asset_name": "Not_Set", 
     "req_license": "", 
-    "job_asset_name": "snazarenko", 
-    "end_frame": 10, 
+    "end_frame": 1, 
     "queue": "3d", 
     "output_picture": "", 
-    "command": "$HAFARM_HOME/scripts/debug_images.py --job testRenderPressed.hip_XX18_comp_debug --save_json -i  ", 
-    "pre_render_script": "mkdir -p debug", 
+    "command": "ffmpeg -y -r 25 -i proxy/md.jpg -an -vcodec libx264 -vpre slow -crf 26 -threads 1 mdmp4 /", 
+    "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
-    "tile_x": 1, 
-    "tile_y": 1, 
     "frame_range_arg": [
       "%s%s%s", 
       "", 
       "", 
       ""
-    ]
+    ], 
+    "tile_y": 1, 
+    "tile_x": 1
   }, 
   "backend_name": "HaGraph"
 }
