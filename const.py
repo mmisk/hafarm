@@ -22,6 +22,8 @@ import json
 from jinja2 import Environment, FileSystemLoader
 import StringIO as io
 
+from hafarm.HaConstant import HaConstant
+
 TEMPLATE_ENVIRONMENT = Environment(autoescape=False, loader=FileSystemLoader(os.path.expandvars('$HAFARM_HOME/')), trim_blocks=False)
 parms_jinja_template = TEMPLATE_ENVIRONMENT.get_template('parms.schema')
 
@@ -74,32 +76,6 @@ class ConstantItem(object):
         rendered = parms_jinja_template.render(self._data,TASK_ID=TASK_ID)
         parms = json.load(io.StringIO(str(rendered)))
         return '%s' % parms[self._name]
-
-
-
-class HaConstant(object):
-    def __init__(self, default):
-        self._parms = None
-        self._default = default
-
-
-    def set_parms(self, val):
-        self._parms = val
-
-
-    def __lshift__(self, str_obj):
-        self._default = str_obj
-
-
-    def __str__(self):
-
-        def expand_list(a):
-            if isinstance(a, list):
-                return ' '.join( [str(x) for x in a ])
-            return a
-
-        parms = dict([(m,expand_list(n)) for m,n in self._parms.iteritems()])
-        return self._default.format(**parms)
 
 
 

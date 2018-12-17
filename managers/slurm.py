@@ -110,10 +110,7 @@ class Slurm(RenderManager):
             deps = list(set([str(item) for sublist in deps for item in sublist]))
             self.parms['slurm_aftercorr'] = deps
 
-        # cmd = str(self.parms['command'])
-        # self.parms['command'] = os.path.expandvars(cmd)
         self.parms['scene_file'] << { 'scene_fullpath': scene_file }
-
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
 
         slurm_template = None
