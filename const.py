@@ -99,7 +99,7 @@ class HaConstant(object):
             return a
 
         parms = dict([(m,expand_list(n)) for m,n in self._parms.iteritems()])
-        return self._default.format(**parms)
+        return os.path.expandvars( self._default.format(**parms) )
 
 
 
