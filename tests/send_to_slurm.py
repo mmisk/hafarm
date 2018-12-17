@@ -88,7 +88,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test1_replaceTASKID(self):
-        with tempdir('hafarm_slurm_test_replaceTASKID',False) as (tmp, generated_directory):
+        with tempdir('hafarm_slurm_test1_replaceTASKID',False) as (tmp, generated_directory):
             item1 = Batch.BatchBase("testR",'/hafarm/test_replace1')
             path = '/tmp'
             ext = '.ifd'
@@ -120,7 +120,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test2_GeneratedFiles(self):
-        with tempdir('hafarm_slurm_test_GeneratedFiles') as (tmp, generated_directory):
+        with tempdir('hafarm_slurm_test2_GeneratedFiles') as (tmp, generated_directory):
             item1 = Batch.BatchBase("test1",'/hafarm/test1')
             item1.parms['scene_file'] << { 'scene_fullpath': '/tmp/test1' }
             item1.parms['command_arg'] = ["-p"]
@@ -162,7 +162,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test3_change_command(self):
-        with tempdir('hafarm_slurm_test_ChangeCommand') as (tmp, generated_directory):
+        with tempdir('hafarm_slurm_test3_ChangeCommand') as (tmp, generated_directory):
             item1 = Batch.BatchBase("test4Cmd",'/hafarm/test1')
             item1.parms['scene_file'] << { 'scene_fullpath': '/tmp/test1' }
             item1.parms['output_picture'] = "/tmp/test1.exr"
@@ -180,6 +180,12 @@ class TestTmpSlurm(unittest.TestCase):
             expected_files = [   'test4Cmd_XXX5__bs.job'
                                 ,'test4Cmd_XXX5__bs.json' ]
 
+            actual_files = os.listdir(generated_directory)
+            actual_files.sort()
+
+            self._test_files(expected_files, actual_files, generated_directory)
+
+            
 
 def run():
     for test in [TestTmpSlurm]: 
