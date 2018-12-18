@@ -60,6 +60,9 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
+        job_expected = [x for x in job_expected if not 'HAFARM_VERSION' in x ]
+        job_actual = [x for x in job_actual if not 'HAFARM_VERSION' in x ]
+
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
 

@@ -37,7 +37,8 @@ def tempdir(prefix, remove=True):
         shutil.rmtree(dirpath)
 
 
-pat = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
 
 
 
@@ -94,10 +95,13 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
                         , 'job_name', 'command', 'priority'
                         , 'job_on_hold', 'queue', 'group']
 
-        def fix_jobdir(x):
-            if isinstance(x, unicode):
-                return re.sub(pat, '_', x)
-            return x
+        def fix_jobdir(val):
+            if isinstance(val, unicode):
+                val = re.sub(pat1, '_', val)
+                return re.sub(pat2, '_', val)
+            if isinstance(val, list):
+                return [ fix_jobdir(x) for x in  val]
+            return val
 
         expected = dict( [(x, fix_jobdir(json_expected['parms'][x])) for x in tst_params] )
         actual = dict( [(x, fix_jobdir(json_actual['parms'][x])) for x in tst_params] )
@@ -107,8 +111,10 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
-        job_expected = [re.sub(pat, '_', x) for x in job_expected]
-        job_actual = [re.sub(pat, '_', x) for x in job_actual]
+        job_expected = [re.sub(pat1, '_', x) for x in job_expected if not 'HAFARM_VERSION' in x ]
+        job_actual = [re.sub(pat1, '_', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
+        job_expected = [re.sub(pat2, '_', x) for x in job_expected]
+        job_actual = [re.sub(pat2, '_', x) for x in job_actual]
 
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True

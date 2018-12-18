@@ -10,6 +10,7 @@ hython hafarm/tests/test_Houdini.py
 import unittest
 import sys, os, tempfile, shutil
 import json
+import re
 from contextlib import contextmanager
 
 
@@ -82,6 +83,9 @@ from hafarm import PrintRender
 from hafarm import GraphvizRender
 
 HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
+
+pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
 
 class TestMantraRenderFrameList(unittest.TestCase):
     def setUp(self):
@@ -401,9 +405,18 @@ class TestRenderPressed(unittest.TestCase):
         
         expected, actual = {}, {}
         tst_params = ['scene_file', 'command_arg', 'target_list', 'output_picture', 'job_name', 'command'] 
-        expected = dict( [(x, json_expected['parms'][x]) for x in tst_params] )
-        actual = dict( [(x, json_actual['parms'][x]) for x in tst_params] )
-        self.assertDictEqual(expected, actual, "Expected %s != %s " %( json_expected["class_name"],  json_actual["class_name"]))
+        
+        def fix_jobdir(val):
+            if isinstance(val, unicode):
+                val = re.sub(pat1, '_', val)
+                return re.sub(pat2, '_', val)
+            if isinstance(val, list):
+                return [ fix_jobdir(x) for x in  val]
+            return val
+
+        expected = dict( [(x, fix_jobdir(json_expected['parms'][x])) for x in tst_params] )
+        actual = dict( [(x, fix_jobdir(json_actual['parms'][x])) for x in tst_params] )
+        self.assertDictEqual(expected, actual, "Expected %s != %s " %( json_expected["class_name"], json_actual["class_name"]) )
 
         return True
 
