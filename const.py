@@ -19,24 +19,30 @@ HAFARM_DEFAULT_BACKEND = 'Slurm'
 import traceback 
 import os
 import json
-from jinja2 import Environment, FileSystemLoader
 import StringIO as io
 
 from hafarm.HaConstant import HaConstant
-
-TEMPLATE_ENVIRONMENT = Environment(autoescape=False, loader=FileSystemLoader(os.path.expandvars('$HAFARM_HOME/')), trim_blocks=False)
-parms_jinja_template = TEMPLATE_ENVIRONMENT.get_template('parms.schema')
+try: 
+  from jinja2 import Environment, FileSystemLoader
+  TEMPLATE_ENVIRONMENT = Environment(autoescape=False, loader=FileSystemLoader(os.path.expandvars('$HAFARM_HOME/')), trim_blocks=False)
+  parms_jinja_template = TEMPLATE_ENVIRONMENT.get_template('parms.schema')
+except:
+  pass
 
 
 
 class ConstantItemJSONEncoder(json.JSONEncoder):
 
     def default(self, z):
-        if isinstance(z, ConstantItem):
-            return str(z)
-        if isinstance(z, HaConstant):
-            return str(z)
-        super().default(self, z)
+        try:
+          #FIXME: doesn't
+          #if isinstance(z, ConstantItem):
+          if str(z.__class__.mro()) == str(ConstantItem.mro()):
+              return str(z)
+          super().default(self, z)
+        except:
+          print "#####", z.__class__.mro(), ConstantItem.mro()
+
 
 
 

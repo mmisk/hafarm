@@ -384,7 +384,7 @@ class HoudiniMantraWrapper(object):
 
             if mtr1.is_tiled() == True:
                 join_tiles_action = BatchJoinTiles( mtr1.parms['output_picture']
-                                            , self._tiles_x, self._tiles_y
+                                            , mtr1._tiles_x, mtr1._tiles_y
                                             , mtr1.parms['priority'] + 1
                                             , make_proxy = mtr1._make_proxy 
                                             , start = mtr1.parms['start_frame']
