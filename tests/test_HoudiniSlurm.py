@@ -71,7 +71,7 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
         self.box_teapot.setNextInput(self.teapot)
         self.teapot.setNextInput(self.alembic)
 
-        self.root.parm("group").set("allhosts")
+        self.root.parm("group").set("renders")
         self.root.parm("queue").set("cuda")
         self.root.parm("priority").set(-100)
         self.root.parm("job_on_hold").set(True)
