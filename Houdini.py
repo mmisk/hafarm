@@ -380,7 +380,7 @@ class HoudiniMantraWrapper(object):
                     houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
 
         elif 'denoise' in kwargs:
-            self._kwargs['ifd_hash'] = self.get_jobname_hash()
+            self._kwargs['ifd_hash'] = ifd.get_jobname_hash()
             ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
 
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
@@ -390,8 +390,9 @@ class HoudiniMantraWrapper(object):
             beaty = mtr1.parms['output_picture']
             mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
             mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-            mtr1.parms['command_arg'] += [mtr1.parms['output_picture']]
-            mtr2.parms['command_arg'] += [mtr2.parms['output_picture']]
+            filter_ = '$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py'
+            mtr1.parms['command'] << '{exe} -P "%s --denoise" {command_arg} {scene_file} {output_picture}' % filter_
+            mtr2.parms['command'] << '{exe} -P "%s --denoise" {command_arg} {scene_file} {output_picture}' % filter_
 
             altus = AltusBatchRender( 
                 beaty,
