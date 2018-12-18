@@ -380,9 +380,7 @@ class HoudiniMantraWrapper(object):
                     houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
 
         elif 'denoise' in kwargs:
-            self._kwargs['ifd_hash'] = self.get_jobname_hash()
-            ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
-
+            self._kwargs['ifd_hash'] = group_hash
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass2', **self._kwargs )
 
