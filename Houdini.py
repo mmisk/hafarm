@@ -638,13 +638,9 @@ class HaContextHoudini(object):
                 )
         global_parms.update(task_control)
 
-<<<<<<< HEAD
-        # if hafarm_node.parm('denoise').eval() == True:
-        global_parms.update( { 'denoise': 'altus' } )
-=======
-        # if hafarm_node.parm('altus').eval() == True:
-        # global_parms.update( { 'altus': True } )
->>>>>>> d4b36a10220799a59ab5a59c2ba1e82e35fe7603
+        if hafarm_node.parm('denoise').eval() == True:
+            global_parms.update( { 'denoise': 'altus' } )
+
 
         hou.hipFile.save()
         
