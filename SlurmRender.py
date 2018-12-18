@@ -7,7 +7,7 @@ class SlurmRender(object):
         super(SlurmRender, self).__init__()
         self.hagraphitems_lst = hagraphitems_lst
 
-    def render(self, dryrun=False):
+    def render(self, dryrun=False, **kwargs):
         for k, n in self.hagraphitems_lst.iteritems():
             for i in n.dependencies:
                 item = self.hagraphitems_lst[i]

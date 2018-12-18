@@ -1,3 +1,11 @@
+
+"""
+Make test:
+python hafarm/tests/send_to_slurm.py
+
+"""
+
+
 from contextlib import contextmanager
 import os
 import shutil
@@ -52,6 +60,9 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
+        job_expected = [x for x in job_expected if not 'HAFARM_VERSION' in x ]
+        job_actual = [x for x in job_actual if not 'HAFARM_VERSION' in x ]
+
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
 
@@ -185,7 +196,7 @@ class TestTmpSlurm(unittest.TestCase):
 
             self._test_files(expected_files, actual_files, generated_directory)
 
-            
+
 
 def run():
     for test in [TestTmpSlurm]: 

@@ -34,7 +34,7 @@
 #SBATCH -p {{ queue }}
 {%- endif %}
 {%- if group %}
-	{% if group != "allhosts" %}#SBATCH  -C {{ group }}{% endif %}
+{% if group != "allhosts" %}#SBATCH -C {{ group }}{% endif %}
 {%- endif %}
 
 HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}

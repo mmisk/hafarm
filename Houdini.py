@@ -56,7 +56,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['output_picture'] = self.get_output_picture()
         self.parms['email_list']  = [utils.get_email_address()]
         self.parms['ignore_check'] = kwargs.get('ignore_check', True)
-        self.parms['job_on_hold'] = kwargs['job_on_hold']
+        self.parms['job_on_hold'] = path in kwargs['job_on_hold']
         self.parms['priority'] = kwargs['priority']
         self.parms['queue'] = kwargs['queue']
         self.parms['group'] = kwargs['group']
@@ -380,9 +380,7 @@ class HoudiniMantraWrapper(object):
                     houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
 
         elif 'denoise' in kwargs:
-            self._kwargs['ifd_hash'] = ifd.get_jobname_hash()
-            ifd = HoudiniIFDWrapper( index, path, depends, **self._kwargs )
-
+            self._kwargs['ifd_hash'] = group_hash
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass2', **self._kwargs )
 
@@ -597,11 +595,16 @@ class HaContextHoudini(object):
         tile_x, tile_y = 1, 1
         if hafarm_node.parm('tiles').eval() == True:
             tile_x, tile_y = hafarm_node.parm('tile_x').eval(), hafarm_node.parm('tile_y').eval()
+
+        job_on_hold =[]
+        if bool(hafarm_node.parm('job_on_hold').eval()) == True:
+            job_on_hold = [ x.path() for x in hafarm_node.inputs() ]
+
         
         global_parms = dict(
                   queue = str(hafarm_node.parm('queue').eval())
                 , group = str(hafarm_node.parm('group').eval())
-                , job_on_hold = bool(hafarm_node.parm('job_on_hold').eval())
+                , job_on_hold = job_on_hold
                 , priority = int(hafarm_node.parm('priority').eval())
                 , ignore_check = True if hafarm_node.parm("ignore_check").eval() else False
                 , email_list  = [utils.get_email_address()] #+ list(hafarm_node.parm('additional_emails').eval().split()) if hafarm_node.parm("add_address").eval() else []
