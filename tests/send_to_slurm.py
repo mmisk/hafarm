@@ -96,7 +96,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test1_replaceTASKID(self):
-        with tempdir('hafarm_slurm_test1_replaceTASKID',False) as (tmp, generated_directory):
+        with tempdir('hafarm_slurm_test1_replaceTASKID') as (tmp, generated_directory):
             item1 = Batch.BatchBase("testR",'/hafarm/test_replace1')
             path = '/tmp'
             ext = '.ifd'
