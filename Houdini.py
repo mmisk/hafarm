@@ -676,6 +676,7 @@ class HaContextHoudiniExistingIfd(object):
         return graph
 
 
+
 class HaContextHoudiniMantra(object):
     def __init__(self, hafarm_node, global_parms):
         self.hafarm_node = hafarm_node
