@@ -39,7 +39,7 @@ def tempdir(prefix, remove=True):
 
 pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
 pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
-
+pat3 = re.compile('hafarm_slurm_test2_MoreOptions([0-9a-z_]+)', flags=re.IGNORECASE)
 
 
 class TestTmpHoudiniSlurm(unittest.TestCase):
@@ -93,11 +93,14 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
         tst_params = [   'scene_file', 'command_arg'
                         , 'target_list', 'output_picture'
                         , 'job_name', 'command', 'priority'
-                        , 'job_on_hold', 'queue', 'group']
+                        , 'job_on_hold', 'queue', 'group'
+                        , 'req_memory', 'req_resources'
+                        , 'slots', 'max_running_tasks', 'req_start_time']
 
         def fix_jobdir(val):
             if isinstance(val, unicode):
                 val = re.sub(pat1, '_', val)
+                val = re.sub(pat3, '_', val)
                 return re.sub(pat2, '_', val)
             if isinstance(val, list):
                 return [ fix_jobdir(x) for x in  val]
@@ -115,6 +118,8 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
         job_actual = [re.sub(pat1, '_', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
         job_expected = [re.sub(pat2, '_', x) for x in job_expected]
         job_actual = [re.sub(pat2, '_', x) for x in job_actual]
+        job_expected = [re.sub(pat3, '_', x) for x in job_expected]
+        job_actual = [re.sub(pat3, '_', x) for x in job_actual]
 
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
@@ -149,6 +154,53 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
                     job_expected = f.readlines()
 
                 self.assertEqual(self._test_job(job_expected, job_actual), True, n)
+
+
+    def test2_MoreOptions(self):
+        with tempdir('hafarm_slurm_test2_MoreOptions') as (tmp, generated_directory):
+            hou.setPwd(self.root)
+            self.root.parm("more").set(True)
+            self.root.parm("hbatch_slots").set(44)
+            self.root.parm("mantra_slots").set(55)
+            self.root.parm("hbatch_ram").set(64)
+            self.root.parm("mantra_ram").set(32)
+            self.root.parm("max_running_tasks").set(77)
+            self.root.parm("delay").set(7)
+
+            ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'Z'), xrange(1,90)))
+            graph = ctx.get_graph()
+            graph.set_render(SlurmRender.SlurmRender)
+            json_files = graph.render(json_output_directory=generated_directory, dryrun=True)
+            json_files.sort()
+
+            self.assertEqual(len(json_files), 7, 'incorrect count files')
+
+            json_expected_files = [  'testRenderSlurm.hip_ZZ10_grid_ifd.hip'
+                                    ,'testRenderSlurm.hip_ZZ10_grid_ifd.job'
+                                    ,'testRenderSlurm.hip_ZZ10_grid_ifd.json'
+                                    ,'testRenderSlurm.hip_ZZ10_grid_mantra.job'
+                                    ,'testRenderSlurm.hip_ZZ10_grid_mantra.json'
+                                    ,'testRenderSlurm.hip_ZZ13_comp_comp.hip'
+                                    ,'testRenderSlurm.hip_ZZ13_comp_comp.job'
+                                    ,'testRenderSlurm.hip_ZZ13_comp_comp.json'
+                                    ,'testRenderSlurm.hip_ZZZ2_alembic_alembic.hip'
+                                    ,'testRenderSlurm.hip_ZZZ2_alembic_alembic.job'
+                                    ,'testRenderSlurm.hip_ZZZ2_alembic_alembic.json'
+                                    ,'testRenderSlurm.hip_ZZZ4_teapot_geometry.hip'
+                                    ,'testRenderSlurm.hip_ZZZ4_teapot_geometry.job'
+                                    ,'testRenderSlurm.hip_ZZZ4_teapot_geometry.json'
+                                    ,'testRenderSlurm.hip_ZZZ6_box_teapot_ifd.hip'
+                                    ,'testRenderSlurm.hip_ZZZ6_box_teapot_ifd.job'
+                                    ,'testRenderSlurm.hip_ZZZ6_box_teapot_ifd.json'
+                                    ,'testRenderSlurm.hip_ZZZ6_box_teapot_mantra.job'
+                                    ,'testRenderSlurm.hip_ZZZ6_box_teapot_mantra.json' ]
+
+            json_expected_files.sort()
+
+            actual_files = os.listdir(generated_directory)
+            actual_files.sort()
+
+            self._test_files(json_expected_files, actual_files, generated_directory)
 
 
     def test1_SlurmFiles(self):
