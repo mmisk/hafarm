@@ -60,6 +60,9 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
+        job_expected = [x for x in job_expected if not 'HAFARM_VERSION' in x ]
+        job_actual = [x for x in job_actual if not 'HAFARM_VERSION' in x ]
+
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
 
@@ -96,7 +99,7 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def test1_replaceTASKID(self):
-        with tempdir('hafarm_slurm_test1_replaceTASKID') as (tmp, generated_directory):
+        with tempdir('hafarm_slurm_test1_replaceTASKID',False) as (tmp, generated_directory):
             item1 = Batch.BatchBase("testR",'/hafarm/test_replace1')
             path = '/tmp'
             ext = '.ifd'
