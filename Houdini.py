@@ -361,6 +361,13 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
     def get_step_frame(self):
         return self.hou_node.parm("ifd_range3").eval()
 
+
+    def get_output_picture(self):
+        return self.hou_node.parm('vm_picture').eval()
+
+
+        
+class HoudiniMantraWrapper(object):
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
         self._kwargs = kwargs
@@ -378,9 +385,10 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
                 self.append_instances( mtr )
 
             for k, m in houdini_dependencies.iteritems():
-                if self._instances[1].index in m: # It is not clear that in __iter__() function instances look like that [ifd.index, root.index, rest.index, ...] 
-                    houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
-
+                if ifd.index in m:
+                    m.remove(ifd.index)
+                    m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
+        
         elif 'denoise' in kwargs:
             self._kwargs['ifd_hash'] = group_hash
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
@@ -601,7 +609,6 @@ class HaContextHoudini(object):
         if bool(hafarm_node.parm('job_on_hold').eval()) == True:
             job_on_hold = [ x.path() for x in hafarm_node.inputs() ]
 
-        
         global_parms = dict(
                   queue = str(hafarm_node.parm('queue').eval())
                 , group = str(hafarm_node.parm('group').eval())
