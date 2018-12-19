@@ -1,5 +1,6 @@
 import os
 from const import hafarm_defaults
+from const import HaConstant
 
 class HaFarmParms(dict):
     """Render manager agnostic job's parameters container.

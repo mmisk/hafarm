@@ -107,11 +107,9 @@ class Slurm(RenderManager):
             # get_jobids_by_name returns a list: [jobid, ...]
             deps = [self.get_jobid_by_name(name) for name in deps]
             # Flattern array of arrays:
-            deps = [str(item) for sublist in deps for item in sublist]
+            deps = list(set([str(item) for sublist in deps for item in sublist]))
             self.parms['slurm_aftercorr'] = deps
 
-        cmd = str(self.parms['command'])
-        self.parms['command'] = os.path.expandvars(cmd)
         self.parms['scene_file'] << { 'scene_fullpath': scene_file }
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
 

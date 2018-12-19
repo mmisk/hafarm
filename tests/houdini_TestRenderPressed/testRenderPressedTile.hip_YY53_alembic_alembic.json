@@ -1,10 +1,8 @@
 {
-  "class_name": "HoudiniMantra", 
-  "inputs": [
-    "testRenderPressed.hip_XX15_grid_ifd"
-  ], 
+  "class_name": "HoudiniAlembicWrapper", 
+  "inputs": [], 
   "parms": {
-    "req_resources": "", 
+    "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -16,52 +14,52 @@
     "max_running_tasks": 1000, 
     "req_start_time": 0.0, 
     "exclude_list": [], 
-    "group": "", 
+    "group": "renders", 
     "req_memory": 0, 
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      "-j", 
-      "0", 
-      "-V1", 
-      "-f", 
-      "@SCENE_FILE/>"
+      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
+      "--ignore_tiles", 
+      "-d /out/alembic"
     ], 
-    "step_frame": 1, 
+    "step_frame": 240, 
     "req_tmpdir": 32, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX15_grid_mantra", 
+    "job_name": "testRenderPressedTile.hip_YY53_alembic_alembic", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "target_list": [], 
+    "target_list": [
+      "/out/alembic"
+    ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1545061450.640311, 
-    "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_XX15_grid.@TASK_ID/>.ifd", 
+    "submission_time": 1545133078.73063, 
+    "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressedTile.hip_YY53_alembic_alembic.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "exe": "$HFS/bin/mantra", 
+    "exe": "$HFS/bin/hython", 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
     "job_asset_name": "snazarenko", 
-    "req_license": "mantra_lic=1", 
+    "req_license": "hbatch_lic=1", 
     "end_frame": 240, 
     "queue": "3d", 
-    "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "{exe} -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py --proxy \" {command_arg} {scene_file}", 
+    "output_picture": "/tmp/output.abc", 
+    "command": "{exe} {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
     "frame_range_arg": [
-      "%s%s%s", 
-      "", 
-      "", 
-      ""
+      "-f %s %s -i %s", 
+      "start_frame", 
+      "end_frame", 
+      1
     ], 
     "tile_y": 1, 
     "tile_x": 1

@@ -50,7 +50,7 @@ class NukeWrapper(HaGraphItem):
         dependencies = []
         super(NukeWrapper, self).__init__(index, dependencies, name, path, tags, *args, **kwargs)
         version = str(nuke.NUKE_VERSION_MAJOR) + '.' + str(nuke.NUKE_VERSION_MINOR)
-        self.parms['command'] << {'command': 'Nuke%s' % version}
+        self.parms['exe'] = 'Nuke%s' % version
         self.parms['command_arg'] = ['-x -V ']
         self.parms['target_list'] = kwargs['target_list']
         write_node = self.parms['target_list'][0]

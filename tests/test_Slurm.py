@@ -1,3 +1,11 @@
+
+"""
+Make test:
+python hafarm/tests/send_to_slurm.py
+
+"""
+
+
 from contextlib import contextmanager
 import os
 import shutil
@@ -17,9 +25,12 @@ HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
 @contextmanager
 def tempdir(prefix, remove=True):
-    dirpath = tempfile.mkdtemp(prefix=prefix)
+    dirpath = tempfile.mkdtemp(prefix=prefix) 
+    os.environ['JOB'] = dirpath
+    generated_directory = dirpath + '/render/sungrid/jobScript'
+    os.makedirs(generated_directory)
     try:
-        yield dirpath
+        yield dirpath, generated_directory
     except:
         raise
     if remove == True:
@@ -49,6 +60,9 @@ class TestTmpSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
+        job_expected = [x for x in job_expected if not 'HAFARM_VERSION' in x ]
+        job_actual = [x for x in job_actual if not 'HAFARM_VERSION' in x ]
+
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
 
@@ -84,17 +98,13 @@ class TestTmpSlurm(unittest.TestCase):
                 self.assertEqual(self._test_job(job_expected, job_actual), True, n)
 
 
-    def test_replaceTASKID(self):
-        with tempdir('hafarm_slurm_test_replaceTASKID',False) as tmp:
-            os.environ['JOB'] = tmp
-            generated_directory = tmp + '/render/sungrid/jobScript'
-            os.makedirs(generated_directory)
-
+    def test1_replaceTASKID(self):
+        with tempdir('hafarm_slurm_test1_replaceTASKID',False) as (tmp, generated_directory):
             item1 = Batch.BatchBase("testR",'/hafarm/test_replace1')
             path = '/tmp'
             ext = '.ifd'
 
-            item1.parms['command'] << { "command": "FILE_FOR_DIFF" }
+            item1.parms['exe'] = "FILE_FOR_DIFF "
 
             item1.parms['scene_file'] << { 'scene_file_path': path
                                             , 'scene_file_basename':  'test1.hip' 
@@ -111,8 +121,8 @@ class TestTmpSlurm(unittest.TestCase):
 
             self.assertEqual(len(json_files), 1, 'incorrect count files')
             
-            expected_files = [   'testR_XXX4__bs.job'
-                                ,'testR_XXX4__bs.json' ]
+            expected_files = [   'testR_XXX1__bs.job'
+                                ,'testR_XXX1__bs.json' ]
 
             actual_files = os.listdir(generated_directory)
             actual_files.sort()
@@ -120,25 +130,22 @@ class TestTmpSlurm(unittest.TestCase):
             self._test_files(expected_files, actual_files, generated_directory)
 
 
-    def test_GeneratedFiles(self):
-        with tempdir('hafarm_slurm_test_GeneratedFiles') as tmp:
-            os.environ['JOB'] = tmp
-            generated_directory = tmp + '/render/sungrid/jobScript'
-            os.makedirs(generated_directory)
-
+    def test2_GeneratedFiles(self):
+        with tempdir('hafarm_slurm_test2_GeneratedFiles') as (tmp, generated_directory):
             item1 = Batch.BatchBase("test1",'/hafarm/test1')
             item1.parms['scene_file'] << { 'scene_fullpath': '/tmp/test1' }
-            item1.parms['command'] << { "command": "mkdir -p" }
+            item1.parms['command_arg'] = ["-p"]
+            item1.parms['exe'] = "mkdir"
 
             item2 = Batch.BatchBase("test2",'/hafarm/test2')
             item2.parms['scene_file'] << { 'scene_fullpath': '/tmp/test2' }
-            item2.parms['command'] << { "command": "touch" }
+            item2.parms['exe'] = "touch"
             item2.add( item1 )
 
-            item3 = Batch.BatchBase("test3",'/hafarm/test2')
+            item3 = Batch.BatchBase("test3",'/hafarm/test3')
             item3.parms['scene_file'] << { 'scene_fullpath':  '/tmp/test1/test2' }
             item3.parms['command_arg'] = ["item3", ">>"]
-            item3.parms['command'] << { "command": "echo" }
+            item3.parms['exe'] = "echo"
             item3.add( item1, item2 )
 
             graph = HaGraph.HaGraph(graph_items_args=[])
@@ -152,12 +159,37 @@ class TestTmpSlurm(unittest.TestCase):
 
             self.assertEqual(len(json_files), 3, 'incorrect count files')
 
-            expected_files = [   'test1_XXX1__bs.job'
-                                ,'test1_XXX1__bs.json'
-                                ,'test2_XXX2__bs.job'
-                                ,'test2_XXX2__bs.json'
-                                ,'test3_XXX3__bs.job'
-                                ,'test3_XXX3__bs.json' ]
+            expected_files = [   'test1_XXX2__bs.job'
+                                ,'test1_XXX2__bs.json'
+                                ,'test2_XXX3__bs.job'
+                                ,'test2_XXX3__bs.json'
+                                ,'test3_XXX4__bs.job'
+                                ,'test3_XXX4__bs.json' ]
+
+            actual_files = os.listdir(generated_directory)
+            actual_files.sort()
+
+            self._test_files(expected_files, actual_files, generated_directory)
+
+
+    def test3_change_command(self):
+        with tempdir('hafarm_slurm_test3_ChangeCommand') as (tmp, generated_directory):
+            item1 = Batch.BatchBase("test4Cmd",'/hafarm/test1')
+            item1.parms['scene_file'] << { 'scene_fullpath': '/tmp/test1' }
+            item1.parms['output_picture'] = "/tmp/test1.exr"
+            item1.parms['command_arg'] = ["this", "list", "is", "not", "to", "be", "in", "command_arg"]
+            item1.parms['command'] << "{exe} {scene_file} {output_picture}"
+            item1.parms['exe'] = "ffmpeg"
+
+            graph = HaGraph.HaGraph(graph_items_args=[])
+            graph.add_node(item1)
+            graph.set_render(SlurmRender.SlurmRender)
+            json_files = graph.render(dryrun=True)
+            
+            self.assertEqual(len(json_files), 1, 'incorrect count files')
+            
+            expected_files = [   'test4Cmd_XXX5__bs.job'
+                                ,'test4Cmd_XXX5__bs.json' ]
 
             actual_files = os.listdir(generated_directory)
             actual_files.sort()

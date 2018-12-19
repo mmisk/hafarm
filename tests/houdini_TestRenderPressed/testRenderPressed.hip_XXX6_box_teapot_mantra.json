@@ -1,5 +1,5 @@
 {
-  "class_name": "HoudiniMantraWrapper", 
+  "class_name": "HoudiniMantra", 
   "inputs": [
     "testRenderPressed.hip_XXX6_box_teapot_ifd"
   ], 
@@ -14,7 +14,7 @@
     "frame_padding_length": 4, 
     "slots": 0, 
     "max_running_tasks": 1000, 
-    "req_tmpdir": 32, 
+    "req_start_time": 0.0, 
     "exclude_list": [], 
     "group": "", 
     "req_memory": 0, 
@@ -29,41 +29,42 @@
       "@SCENE_FILE/>"
     ], 
     "step_frame": 1, 
-    "req_start_time": 0.0, 
+    "req_tmpdir": 32, 
     "priority": -500, 
     "make_proxy": false, 
     "email_stderr": false, 
     "job_name": "testRenderPressed.hip_XXX6_box_teapot_mantra", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "email_list": [
-      "s.nazarenko@human-ark.com"
-    ], 
     "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1544605935.128223, 
+    "submission_time": 1545061450.634524, 
     "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_XXX6_box_teapot.@TASK_ID/>.ifd", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "req_license": "mantra_lic=1", 
+    "exe": "$HFS/bin/mantra", 
+    "email_list": [
+      "s.nazarenko@human-ark.com"
+    ], 
     "job_asset_name": "snazarenko", 
+    "req_license": "mantra_lic=1", 
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "/tmp/render/testRenderPressed.box_teapot.0001.exr", 
-    "command": "$HFS/bin/mantra  -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py  --proxy  \"", 
+    "command": "{exe} -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py --proxy \" {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
-    "tile_x": 1, 
-    "tile_y": 1, 
     "frame_range_arg": [
       "%s%s%s", 
       "", 
       "", 
       ""
-    ]
+    ], 
+    "tile_y": 1, 
+    "tile_x": 1
   }, 
   "backend_name": "HaGraph"
 }

@@ -9,7 +9,7 @@ import random
 import string
 import json
 from const import ConstantItemJSONEncoder
-
+from hafarm.HaConstant import HaConstant
 
 
 class HaGraphDependency(list):
@@ -129,6 +129,12 @@ class HaGraphItem(object):
             (self.name, self.index, self.tags, self.path)
 
 
+def expand(val, dict_):
+    if isinstance(val, HaConstant):
+        val.set_parms(dict_)
+        return val._default
+    return val
+
 
 class HaGraph(object):
     def __init__(self, graph_items_args=[]):
@@ -176,7 +182,7 @@ class HaGraph(object):
             _db['inputs'] = [ str(graph_items[x].parms['job_name']) for x in item.dependencies ]
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'HaGraph'
-            _db['parms'] = item.parms
+            _db['parms'] = dict([(n,expand(m, item.parms)) for n,m in item.parms.iteritems()])
             parms_file = kwargs.get( 'json_output_directory', os.path.expandvars(item.parms['script_path']) )
             parms_file = os.path.join(parms_file, str(item.parms['job_name'])) + '.json'
             json_files += [ parms_file ]
