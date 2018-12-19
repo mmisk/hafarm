@@ -60,6 +60,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['priority'] = kwargs['priority']
         self.parms['queue'] = kwargs['queue']
         self.parms['group'] = kwargs['group']
+        self.parms['req_start_time'] = kwargs['req_start_time']
+        self.parms['max_running_tasks'] = kwargs['max_running_tasks']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -232,6 +234,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" % ifd_name ]
+        self.parms['slots'] = kwargs.get('hbatch_slots')
 
 
     def get_output_picture(self):
@@ -251,6 +254,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
+        self.parms['req_resources'] = 'procslots=%s' % kwargs.get('mantra_slots')
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
         self.parms['exe'] = '$HFS/bin/mantra'
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
