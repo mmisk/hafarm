@@ -60,6 +60,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['priority'] = kwargs['priority']
         self.parms['queue'] = kwargs['queue']
         self.parms['group'] = kwargs['group']
+        self.parms['req_start_time'] = kwargs['req_start_time']
+        self.parms['max_running_tasks'] = kwargs['max_running_tasks']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -232,6 +234,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" % ifd_name ]
+        self.parms['slots'] = kwargs.get('hbatch_slots')
 
 
     def get_output_picture(self):
@@ -251,6 +254,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
+        self.parms['req_resources'] = 'procslots=%s' % kwargs.get('mantra_slots')
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
         self.parms['exe'] = '$HFS/bin/mantra'
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
@@ -349,15 +353,13 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         if kwargs.get('frame') != None:
             self.parms['job_name'] += { 'render_driver_type': kwargs.get('render_driver_type', 'mantra_frame%s' % kwargs.get('frame')) }
 
+
     def is_tiled(self):
         return self._vm_tile_render
 
-    def get_output_picture(self):
-        return self.hou_node.parm('vm_picture').eval()
 
-
-
-class HoudiniMantraWrapper(object):
+    def get_step_frame(self):
+        return self.hou_node.parm("ifd_range3").eval()
 
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
@@ -409,7 +411,7 @@ class HoudiniMantraWrapper(object):
 
             if mtr1.is_tiled() == True:
                 join_tiles_action = BatchJoinTiles( mtr1.parms['output_picture']
-                                            , self._tiles_x, self._tiles_y
+                                            , mtr1._tiles_x, mtr1._tiles_y
                                             , mtr1.parms['priority'] + 1
                                             , make_proxy = mtr1._make_proxy 
                                             , start = mtr1.parms['start_frame']
@@ -701,6 +703,7 @@ class HaContextHoudiniExistingIfd(object):
         item = HoudiniMantraExistingIfdWrapper( str(uuid4()), self.hafarm_node.path(), [], **self.global_parms )
         graph.add_node( item )
         return graph
+
 
 
 class HaContextHoudiniMantra(object):
