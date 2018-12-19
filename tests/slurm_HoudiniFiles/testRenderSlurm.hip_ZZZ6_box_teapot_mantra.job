@@ -1,0 +1,34 @@
+#!/bin/bash
+#SBATCH --array=1-240:1
+#SBATCH --nice=100
+#SBATCH -N 1
+#SBATCH -n 55
+#SBATCH --begin=now+25200.0
+#SBATCH --requeue
+#SBATCH --tmp=32768
+#SBATCH --mem=32768
+#SBATCH -L mantra_lic:1
+#SBATCH --mail-user=s.nazarenko@human-ark.com
+#SBATCH -p cuda
+#SBATCH -C renders
+
+HAFARM_VERSION=2.0.0
+LAST_FRAME=240
+RANGE_FRAME=$[${SLURM_ARRAY_TASK_ID}+1]
+if ((${RANGE_FRAME}>${LAST_FRAME})); then RANGE_FRAME=${LAST_FRAME}; fi
+
+OUTPUT_PICTURE="/tmp/render/testRenderSlurm.box_teapot.0001.exr"
+echo Job start: `date`
+echo Machine name: ${HOSTNAME}
+echo User    name: ${USER}
+echo Slots:        $NSLOTS
+echo Memory stats: `egrep 'Mem|Cache|Swap' /proc/meminfo`
+echo Scene file  : /tmp/hafarm_slurm_test1_SlurmFiles87K0ur/render/sungrid/ifd/testRenderSlurm.hip_ZZZ6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+
+/opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 55 -V1 -f  /tmp/hafarm_slurm_test1_SlurmFiles87K0ur/render/sungrid/ifd/testRenderSlurm.hip_ZZZ6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+exit_code=$?
+
+echo Render ends: `date`
+echo Render target: "/tmp/render/testRenderSlurm.box_teapot.0001.exr"
+echo Command was: /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 55 -V1 -f  /tmp/hafarm_slurm_test1_SlurmFiles87K0ur/render/sungrid/ifd/testRenderSlurm.hip_ZZZ6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+exit $exit_code
