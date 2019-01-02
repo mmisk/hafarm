@@ -374,6 +374,7 @@ class HoudiniMantraWrapper(object):
                 if ifd.index in m:
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
+
         elif 'altus' in kwargs:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
