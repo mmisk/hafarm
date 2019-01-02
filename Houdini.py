@@ -624,6 +624,8 @@ class HaContextHoudini(object):
         # if hafarm_node.parm('altus').eval() == True:
         # global_parms.update( { 'altus': True } )
 
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
         
         clsctx = None
@@ -633,7 +635,7 @@ class HaContextHoudini(object):
         else:
             clsctx = HaContextHoudiniMantra(hafarm_node, global_parms)
         return clsctx._get_graph(**kwargs)
-
+    
 
 
 class HaContextHoudiniExistingIfd(object):
