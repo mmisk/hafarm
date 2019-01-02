@@ -382,6 +382,7 @@ class HoudiniMantraWrapper(object):
             altus.add(mtr1,mtr2)
             self.append_instances( mtr1, mtr2, altus )
             last_node = altus
+
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             self.append_instances( mtr1 )
