@@ -374,6 +374,7 @@ class HoudiniMantraWrapper(object):
                 if ifd.index in m:
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
+
         elif 'altus' in kwargs:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
@@ -381,6 +382,7 @@ class HoudiniMantraWrapper(object):
             altus.add(mtr1,mtr2)
             self.append_instances( mtr1, mtr2, altus )
             last_node = altus
+
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             self.append_instances( mtr1 )
@@ -622,6 +624,8 @@ class HaContextHoudini(object):
         # if hafarm_node.parm('altus').eval() == True:
         # global_parms.update( { 'altus': True } )
 
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
         
         clsctx = None
@@ -631,7 +635,7 @@ class HaContextHoudini(object):
         else:
             clsctx = HaContextHoudiniMantra(hafarm_node, global_parms)
         return clsctx._get_graph(**kwargs)
-
+    
 
 
 class HaContextHoudiniExistingIfd(object):
