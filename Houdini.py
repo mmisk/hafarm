@@ -143,6 +143,9 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
+
+        self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame'] = int(self.hou_node.parm('f2').eval())
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
