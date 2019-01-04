@@ -37,9 +37,14 @@ def tempdir(prefix, remove=True):
         shutil.rmtree(dirpath)
 
 
-pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
-pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
-pat3 = re.compile('hafarm_slurm_test2_MoreOptions([0-9a-z_]+)', flags=re.IGNORECASE)
+
+regex_patterns = [
+     re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+    ,re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
+    ,re.compile('hafarm_slurm_test2_MoreOptions([0-9a-z_]+)', flags=re.IGNORECASE)
+    ,re.compile('houdini/(v?\\d+.\\d+.\\d+[\\-]?\\d+)') 
+    ,re.compile(os.environ['USER'])]
+
 
 
 class TestTmpHoudiniSlurm(unittest.TestCase):
@@ -99,9 +104,9 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
 
         def fix_jobdir(val):
             if isinstance(val, unicode):
-                val = re.sub(pat1, '_', val)
-                val = re.sub(pat3, '_', val)
-                return re.sub(pat2, '_', val)
+                for pat in regex_patterns:
+                    val = re.sub(pat, '_', val)
+                return val
             if isinstance(val, list):
                 return [ fix_jobdir(x) for x in  val]
             return val
@@ -114,12 +119,9 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
 
 
     def _test_job(self, job_expected, job_actual):
-        job_expected = [re.sub(pat1, '_', x) for x in job_expected if not 'HAFARM_VERSION' in x ]
-        job_actual = [re.sub(pat1, '_', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
-        job_expected = [re.sub(pat2, '_', x) for x in job_expected]
-        job_actual = [re.sub(pat2, '_', x) for x in job_actual]
-        job_expected = [re.sub(pat3, '_', x) for x in job_expected]
-        job_actual = [re.sub(pat3, '_', x) for x in job_actual]
+        for pat in regex_patterns:
+            job_expected = [re.sub(pat, '_', x) for x in job_expected if not 'HAFARM_VERSION' in x ]
+            job_actual = [re.sub(pat, '_', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
 
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True

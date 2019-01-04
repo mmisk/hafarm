@@ -143,6 +143,9 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
+
+        self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame'] = int(self.hou_node.parm('f2').eval())
         
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
@@ -283,33 +286,19 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
 
 
 class AltusBatchRender(BatchBase):
-    def __init__(self, beaty, pass1, pass2, parms, *args, **kwargs):
+    def __init__(self, filename, *args, **kwargs):
         name = 'altus'
         tags = '/hafarm/altus'
         super(AltusBatchRender, self).__init__(name, tags, *args, **kwargs)
-        from utils import padding
-        pad = padding(beaty)
-        filename_1st_pass = pass1.replace(const.TASK_ID, "#")
-        filename_2nd_pass = pass2.replace(const.TASK_ID, "#")
-        outputfile        = pad[0] + pad[2]*"#" + pad[-1]
-
-        self.parms['command_arg'] = [' -i {pass1} -j {pass2} -s {start} -e {end} -f {radius} -o {output}'.
-            format(
-                pass1=filename_1st_pass, 
-                pass2=filename_2nd_pass, 
-                start=const.TASK_ID, 
-                end=const.TASK_ID,
-                radius=1,
-                output=outputfile
-                )]
-
-        self.parms['exe'] = '/home/symek/work/scripts/denoise.py'
-        self.parms['command'] << '{exe} {command_arg} '
+        base, file = os.path.split(filename)
+        file, _ = os.path.splitext(file)
+        inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
+        outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
+        self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+        self.parms['exe'] = 'altus '
         self.parms['job_name'] << { 'render_driver_type': 'altus' }
-        self.parms['start_frame']    = parms['start_frame']
-        self.parms['end_frame']      = parms['end_frame']
-        self.parms['output_picture'] = beaty
-        # self.parms['scene_file']     = const.ConstantItem(beaty)
+        self.parms['command'] << '{exe} -f {scene_file} -t {tile_x} {output_picture}'
+    
 
 
 class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
@@ -366,7 +355,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         return self.hou_node.parm('vm_picture').eval()
 
 
-        
+
 class HoudiniMantraWrapper(object):
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
@@ -388,30 +377,15 @@ class HoudiniMantraWrapper(object):
                 if ifd.index in m:
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
-        
-        elif 'denoise' in kwargs:
-            self._kwargs['ifd_hash'] = group_hash
-            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
-            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass2', **self._kwargs )
 
-            tmp   = utils.padding(mtr1.parms['output_picture'])
-            beaty = mtr1.parms['output_picture']
-            mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
-            mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-            mtr1.parms['command_arg'] += [mtr1.parms['output_picture']]
-            mtr2.parms['command_arg'] += [mtr2.parms['output_picture']]
-
-            altus = AltusBatchRender( 
-                beaty,
-                mtr1.parms['output_picture'], 
-                mtr2.parms['output_picture'], 
-                mtr2.parms, 
-                job_data = ifd.parms['job_name'].data()
-                )
-
+        elif 'altus' in kwargs:
+            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
+            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
+            altus = AltusBatchRender( mtr2.parms['output_picture'], job_data = ifd.parms['job_name'].data(), ifd_hash=group_hash )
             altus.add(mtr1,mtr2)
             self.append_instances( mtr1, mtr2, altus )
             last_node = altus
+
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             self.append_instances( mtr1 )
@@ -604,7 +578,7 @@ class HaContextHoudini(object):
         tile_x, tile_y = 1, 1
         if hafarm_node.parm('tiles').eval() == True:
             tile_x, tile_y = hafarm_node.parm('tile_x').eval(), hafarm_node.parm('tile_y').eval()
-
+        
         job_on_hold =[]
         if bool(hafarm_node.parm('job_on_hold').eval()) == True:
             job_on_hold = [ x.path() for x in hafarm_node.inputs() ]
@@ -650,10 +624,11 @@ class HaContextHoudini(object):
                 )
         global_parms.update(task_control)
 
-        if hafarm_node.parm('denoise').eval() == True:
-            global_parms.update( { 'denoise': 'altus' } )
+        # if hafarm_node.parm('altus').eval() == True:
+        # global_parms.update( { 'altus': True } )
 
-
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
         
         clsctx = None
@@ -663,7 +638,7 @@ class HaContextHoudini(object):
         else:
             clsctx = HaContextHoudiniMantra(hafarm_node, global_parms)
         return clsctx._get_graph(**kwargs)
-
+    
 
 
 class HaContextHoudiniExistingIfd(object):
