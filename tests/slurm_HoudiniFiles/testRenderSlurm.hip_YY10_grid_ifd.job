@@ -23,10 +23,10 @@ echo Slots:        $NSLOTS
 echo Memory stats: `egrep 'Mem|Cache|Swap' /proc/meminfo`
 echo Scene file  : /tmp/hafarm_slurm_test1_SlurmFilesvVQ7iQ/render/sungrid/jobScript/testRenderSlurm.hip_YY10_grid_ifd.hip
 
-/opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/hython /home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py --ignore_tiles -d /out/grid --generate_ifds --ifd_name testRenderSlurm.hip_YY10_grid -f ${SLURM_ARRAY_TASK_ID} ${RANGE_FRAME} -i 1 /tmp/hafarm_slurm_test1_SlurmFilesvVQ7iQ/render/sungrid/jobScript/testRenderSlurm.hip_YY10_grid_ifd.hip
+rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/hython /home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py --ignore_tiles -d /out/grid --generate_ifds --ifd_name testRenderSlurm.hip_YY10_grid -f ${SLURM_ARRAY_TASK_ID} ${RANGE_FRAME} -i 1 /tmp/hafarm_slurm_test1_SlurmFilesvVQ7iQ/render/sungrid/jobScript/testRenderSlurm.hip_YY10_grid_ifd.hip
 exit_code=$?
 
 echo Render ends: `date`
 echo Render target: "/tmp/render/testRenderSlurm.grid.0001.exr"
-echo Command was: /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/hython /home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py --ignore_tiles -d /out/grid --generate_ifds --ifd_name testRenderSlurm.hip_YY10_grid -f ${SLURM_ARRAY_TASK_ID} ${RANGE_FRAME} -i 1 /tmp/hafarm_slurm_test1_SlurmFilesvVQ7iQ/render/sungrid/jobScript/testRenderSlurm.hip_YY10_grid_ifd.hip
+echo Command was: rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/hython /home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py --ignore_tiles -d /out/grid --generate_ifds --ifd_name testRenderSlurm.hip_YY10_grid -f ${SLURM_ARRAY_TASK_ID} ${RANGE_FRAME} -i 1 /tmp/hafarm_slurm_test1_SlurmFilesvVQ7iQ/render/sungrid/jobScript/testRenderSlurm.hip_YY10_grid_ifd.hip
 exit $exit_code

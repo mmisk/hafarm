@@ -297,7 +297,7 @@ class AltusBatchRender(BatchBase):
         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
         self.parms['exe'] = 'altus '
         self.parms['job_name'] << { 'render_driver_type': 'altus' }
-        self.parms['command'] << '{exe} -f {scene_file} -t {tile_x} {output_picture}'
+        self.parms['command'] << '{env} {exe} -f {scene_file} -t {tile_x} {output_picture}'
     
 
 
@@ -319,7 +319,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         else:
             if self._make_proxy == True:
                 mantra_filter += ' --proxy '
-            self.parms['command'] << '{exe} -P "%s" {command_arg} {scene_file}' % mantra_filter
+            self.parms['command'] << '{env} {exe} -P "%s" {command_arg} {scene_file}' % mantra_filter
         self.parms['tile_x'] = self._tiles_x
         self.parms['tile_y'] = self._tiles_y
         self.parms['exe'] = '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval())

@@ -47,7 +47,7 @@
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "", 
-    "command": "{exe} {command_arg} {scene_file}", 
+    "command": "{env} {exe} {command_arg} {scene_file}", 
     "pre_render_script": "mkdir -p /tmp/render/debug", 
     "job_on_hold": false, 
     "email_opt": "", 
