@@ -37,8 +37,8 @@ def tempdir(prefix, remove=True):
     except:
         raise
     if remove == True:
-        #shutil.rmtree(dirpath)
-        pass
+        shutil.rmtree(dirpath)
+        
 
 
 
