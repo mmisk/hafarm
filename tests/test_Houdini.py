@@ -86,8 +86,10 @@ from hafarm import GraphvizRender
 
 HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
-pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
-pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
+regex_patterns = [
+     re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+    ,re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
+    ,re.compile(os.environ['USER']) ]
 
 class TestMantraRenderFrameList(unittest.TestCase):
     def setUp(self):
@@ -415,8 +417,8 @@ class TestRenderPressed(unittest.TestCase):
         
         def fix_jobdir(val):
             if isinstance(val, unicode):
-                val = re.sub(pat1, '_', val)
-                return re.sub(pat2, '_', val)
+                for pat in regex_patterns:
+                    val = re.sub(pat, '_', val)
             if isinstance(val, list):
                 return [ fix_jobdir(x) for x in  val]
             return val

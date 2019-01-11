@@ -55,7 +55,7 @@
     "end_frame": 240, 
     "queue": "opencl_hafarm1", 
     "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "{exe} {command_arg} {scene_file}", 
+    "command": "{env} {exe} {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": true, 
     "email_opt": "", 
