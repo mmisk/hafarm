@@ -23,6 +23,9 @@ import unittest
 
 HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
+os.environ['REZ_USED_RESOLVE'] = "test_package-1.0.0"
+
+
 @contextmanager
 def tempdir(prefix, remove=True):
     dirpath = tempfile.mkdtemp(prefix=prefix) 
@@ -35,6 +38,7 @@ def tempdir(prefix, remove=True):
         raise
     if remove == True:
         shutil.rmtree(dirpath)
+        
 
 
 
@@ -132,30 +136,40 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
 
         self.assertListEqual(expected_files, actual_names, 'incorrect file names')
 
-        for n in expected_files:
-            _, ext = os.path.splitext(n)
+        for filename in expected_files:
+            _, ext = os.path.splitext(filename)
 
             if ext == '.json':
                 json_actual = {}
                 json_expected = {}
-                with open(output_directory + os.sep + n) as f:
+                with open(output_directory + os.sep + filename) as f:
                     json_actual = json.load(f)
 
-                with open(self.TST_DIRECTORY + os.sep + n ) as f:
+                with open(self.TST_DIRECTORY + os.sep + filename ) as f:
                     json_expected = json.load(f)
+                
+                try:
+                    self.assertEqual(self._test_json(json_expected, json_actual), True, filename)
+                except AssertionError, e:
+                    print "HA ERROR: in ######## %s ############" % filename
+                    print e
 
-                self.assertEqual(self._test_json(json_expected, json_actual), True, n)
 
             if ext == '.job':
                 job_actual = ''
                 job_expected = ''
-                with open(output_directory + os.sep + n) as f:
+                with open(output_directory + os.sep + filename) as f:
                     job_actual = f.readlines()
 
-                with open(self.TST_DIRECTORY + os.sep + n ) as f:
+                with open(self.TST_DIRECTORY + os.sep + filename) as f:
                     job_expected = f.readlines()
+                
+                try:
+                    self.assertEqual(self._test_job(job_expected, job_actual), True, filename)
+                except AssertionError, e:
+                    print "HA ERROR: in ######## %s ############" % filename
+                    print e
 
-                self.assertEqual(self._test_job(job_expected, job_actual), True, n)
 
 
     def test2_MoreOptions(self):

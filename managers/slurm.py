@@ -141,7 +141,7 @@ class Slurm(RenderManager):
 
         # This should be clean uped. Either all with flag names or none. 
         arguments = ['sbatch']
-        arguments += ["-J %s" % self.parms['job_name'], '--export=ALL', workdir, stdout, stderr, script_path]
+        arguments += ["-J %s" % self.parms['job_name'], '--export=NONE', workdir, stdout, stderr, script_path]
 
         # FIXME: Temporary cleanup: 
         cc = []
