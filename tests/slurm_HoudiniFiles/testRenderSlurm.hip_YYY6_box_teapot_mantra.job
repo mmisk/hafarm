@@ -21,12 +21,12 @@ echo Machine name: ${HOSTNAME}
 echo User    name: ${USER}
 echo Slots:        $NSLOTS
 echo Memory stats: `egrep 'Mem|Cache|Swap' /proc/meminfo`
-echo Scene file  : /PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+echo Scene file  : /tmp/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
 
-rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 0 -V1 -f  /PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 0 -V1 -f  /tmp/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
 exit_code=$?
 
 echo Render ends: `date`
 echo Render target: "/tmp/render/testRenderSlurm.box_teapot.0001.exr"
-echo Command was: rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 0 -V1 -f  /PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
+echo Command was: rez env test_package-1.0.0 -- /opt/package/rez_packages/houdini/16.5.405/os-CentOS_Linux-7/bin/mantra -P "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py" -j 0 -V1 -f  /tmp/render/sungrid/ifd/testRenderSlurm.hip_YYY6_box_teapot.$SLURM_ARRAY_TASK_ID.ifd
 exit $exit_code
