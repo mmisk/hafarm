@@ -17,7 +17,7 @@
     "max_running_tasks": 1000, 
     "req_start_time": 0.0, 
     "exclude_list": [], 
-    "group": "", 
+    "group": "renders", 
     "req_memory": 0, 
     "hold_jid_ad": [], 
     "post_render_script": "", 
