@@ -290,6 +290,7 @@ class AltusBatchRender(BatchBase):
         name = 'altus'
         tags = '/hafarm/altus'
         super(AltusBatchRender, self).__init__(name, tags, *args, **kwargs)
+        self.parms['queue'] = 'cuda' 
         from utils import padding
         pad = padding(beaty)
         filename_1st_pass = pass1.replace(const.TASK_ID, "#")
@@ -401,8 +402,9 @@ class HoudiniMantraWrapper(object):
             beaty = mtr1.parms['output_picture']
             mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
             mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-            mtr1.parms['command_arg'] += [mtr1.parms['output_picture']]
-            mtr2.parms['command_arg'] += [mtr2.parms['output_picture']]
+
+            mtr1.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
+            mtr2.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
 
             altus = AltusBatchRender( 
                 beaty,
@@ -413,7 +415,7 @@ class HoudiniMantraWrapper(object):
                 )
 
             altus.add(mtr1,mtr2)
-            self.append_instances( mtr1, mtr2, altus )
+            self.append_instances(mtr1, mtr2, altus )
             last_node = altus
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
