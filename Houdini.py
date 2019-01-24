@@ -307,13 +307,12 @@ class AltusBatchRender(BatchBase):
                 output=outputfile
                 )]
 
-        self.parms['exe'] = '/home/symek/work/scripts/denoise.py'
+        self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
         self.parms['command'] << '{exe} {command_arg} '
         self.parms['job_name'] << { 'render_driver_type': 'altus' }
         self.parms['start_frame']    = parms['start_frame']
         self.parms['end_frame']      = parms['end_frame']
         self.parms['output_picture'] = beaty
-        # self.parms['scene_file']     = const.ConstantItem(beaty)
 
 
 class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
