@@ -296,14 +296,11 @@ class AltusBatchRender(BatchBase):
         self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
         self.parms['command'] << '{exe} {command_arg} '
 
+        key1, key2 = depends
+        mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2] 
 
         self.parms['job_name'] << { 'render_driver_type': 'altus' 
                                     , "render_driver_name": hou.node(path).name()  }
-
-        key1, key2 = depends
-
-
-        mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2]
 
         self.add(mtr1, mtr2)
 
