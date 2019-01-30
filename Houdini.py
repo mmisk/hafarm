@@ -301,7 +301,6 @@ class AltusBatchRender(BatchBase):
 
         self.parms['job_name'] << { 'render_driver_type': 'altus' 
                                     , "render_driver_name": hou.node(path).name()  }
-
         self.add(mtr1, mtr2)
 
         mtr1.parms['job_name'] << { 'render_driver_type': 'pass1' }
