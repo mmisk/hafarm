@@ -196,7 +196,7 @@ class HoudiniNodeWrapper(HaGraphItem):
 
 
     def get_step_frame(self):
-        return  int(self.rop.parm('f2').eval()) if self._kwargs.get('use_one_slot') else self._kwargs.get('step_frame')
+        return  int(self.hou_node.parm('f2').eval()) if self._kwargs.get('use_one_slot') else self._kwargs.get('step_frame')
 
 
 
@@ -684,7 +684,7 @@ class HaContextHoudini(object):
             raise Exception('Please, select the HaFarm node.')
         
         hou.allowEnvironmentToOverwriteVariable('JOB', True)
-        hou.hscript('set JOB=' + os.environ.get('JOB'))
+        hou.hscript('set -g JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
 
         graph = HaGraph(graph_items_args=[])
