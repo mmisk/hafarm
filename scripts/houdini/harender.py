@@ -266,6 +266,12 @@ def main():
         sys.exit()
     hip_path, hip_file = os.path.split(scene_file)
     job_path = "_".join((job_current, job_group, job_name, hip_file))
+
+    if os.getenv("HAFARM_SCRATCH_DIR", None):
+        options.scratch = os.getenv("HAFARM_SCRATCH_DIR")
+    if not os.path.isdir(options.scratch):
+        raise("ERROR: Scratch file was set to %s, but it doesn't exist." % options.scratch)
+        
     tmp_shared_storage = create_scratch_dir(options.scratch, job_path)
     if not tmp_shared_storage:
         print "Warning!: Render without scratch. Something is wrong..."
