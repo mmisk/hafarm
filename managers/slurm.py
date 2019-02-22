@@ -96,7 +96,6 @@ class Slurm(RenderManager):
                 self.parms['command_arg'][i] = n.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
 
         self.parms['output_picture'] = self.parms['output_picture'].replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID') 
-
         # ATM Slurm does't support array dependency nor does allow
         # creating dependecy based on job's names (only jobids)
         # We need to ask Slurn for jobids providing it with our names.
@@ -120,6 +119,9 @@ class Slurm(RenderManager):
             slurm_template = TEMPLATE_ENVIRONMENT.get_template('slurm_job.schema')
         
         rendered = slurm_template.render(self.parms,env=os.environ)
+
+
+        rendered = rendered.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
 
         with open(script_path, 'w') as file:
             file.write(rendered)

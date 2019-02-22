@@ -23,8 +23,9 @@ import parms
 from parms import HaFarmParms
 
 houdini_dependencies = {}
+houdini_nodes = {}
 
-
+# hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 def get_houdini_render_nodes(hafarm_node_path):
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
     ret = []
@@ -60,6 +61,8 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['priority'] = kwargs['priority']
         self.parms['queue'] = kwargs['queue']
         self.parms['group'] = kwargs['group']
+        self.parms['req_start_time'] = kwargs['req_start_time']
+        self.parms['max_running_tasks'] = kwargs['max_running_tasks']
         self._scene_file = str(hou.hipFile.name())
         path, name = os.path.split(self._scene_file)
         basename, ext = os.path.splitext(name)
@@ -141,7 +144,10 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        
+
+        self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame'] = int(self.hou_node.parm('f2').eval())
+
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.rs' }
@@ -232,6 +238,7 @@ class HoudiniIFDWrapper(HbatchWrapper):
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
         self.parms['command_arg'] += ["--generate_ifds", "--ifd_name %s" % ifd_name ]
+        self.parms['slots'] = kwargs.get('hbatch_slots')
 
 
     def get_output_picture(self):
@@ -251,6 +258,7 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
         else:
             self.parms['command_arg'] = ['-j', str(threads)]
 
+        self.parms['req_resources'] = 'procslots=%s' % kwargs.get('mantra_slots')
         self.parms['job_name'] << { "jobname_hash": self.get_jobname_hash() }
         self.parms['exe'] = '$HFS/bin/mantra'
         self.parms['command_arg'] += ["-V1", "-f", "@SCENE_FILE/>"]
@@ -279,12 +287,39 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
 
 
 class AltusBatchRender(BatchBase):
-    def __init__(self, beaty, pass1, pass2, parms, *args, **kwargs):
+    def __init__(self, index, path, depends, **kwargs):
         name = 'altus'
         tags = '/hafarm/altus'
-        super(AltusBatchRender, self).__init__(name, tags, *args, **kwargs)
-        from utils import padding
-        pad = padding(beaty)
+        super(AltusBatchRender, self).__init__(name, tags, **kwargs)
+        self.index = index
+        self.parms['queue'] = 'cuda'
+        self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
+        self.parms['command'] << '{exe} {command_arg} '
+
+
+        self.parms['job_name'] << { 'render_driver_type': 'altus' 
+                                    , "render_driver_name": hou.node(path).name()  }
+
+        key1, key2 = depends
+
+
+        mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2]
+
+        self.add(mtr1, mtr2)
+
+        mtr1.parms['job_name'] << { 'render_driver_type': 'pass1' }
+        mtr2.parms['job_name'] << { 'render_driver_type': 'pass2' }
+
+        beaty = mtr1.parms['output_picture']
+
+        tmp   = utils.padding(mtr1.parms['output_picture'])
+        pass1 = mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
+        pass2 = mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
+        mtr1.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
+        mtr2.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
+
+        pad = utils.padding(beaty)
+
         filename_1st_pass = pass1.replace(const.TASK_ID, "#")
         filename_2nd_pass = pass2.replace(const.TASK_ID, "#")
         outputfile        = pad[0] + pad[2]*"#" + pad[-1]
@@ -299,13 +334,13 @@ class AltusBatchRender(BatchBase):
                 output=outputfile
                 )]
 
-        self.parms['exe'] = '/home/symek/work/scripts/denoise.py'
-        self.parms['command'] << '{exe} {command_arg} '
-        self.parms['job_name'] << { 'render_driver_type': 'altus' }
-        self.parms['start_frame']    = parms['start_frame']
-        self.parms['end_frame']      = parms['end_frame']
+        self.parms['start_frame']    = mtr1.parms['start_frame']
+        self.parms['end_frame']      = mtr1.parms['end_frame']
         self.parms['output_picture'] = beaty
-        # self.parms['scene_file']     = const.ConstantItem(beaty)
+
+    def __iter__(self):
+        yield self
+
 
 
 class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
@@ -349,16 +384,21 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         if kwargs.get('frame') != None:
             self.parms['job_name'] += { 'render_driver_type': kwargs.get('render_driver_type', 'mantra_frame%s' % kwargs.get('frame')) }
 
+
     def is_tiled(self):
         return self._vm_tile_render
+
+
+    def get_step_frame(self):
+        return self.hou_node.parm("ifd_range3").eval()
+
 
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
 
 
-
+        
 class HoudiniMantraWrapper(object):
-
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
         self._kwargs = kwargs
@@ -376,9 +416,10 @@ class HoudiniMantraWrapper(object):
                 self.append_instances( mtr )
 
             for k, m in houdini_dependencies.iteritems():
-                if self._instances[1].index in m: # It is not clear that in __iter__() function instances look like that [ifd.index, root.index, rest.index, ...] 
-                    houdini_dependencies[k] += [ x.index for x in mantra_instances if not x.index in m ]
-
+                if ifd.index in m:
+                    m.remove(ifd.index)
+                    m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
+        
         elif 'denoise' in kwargs:
             self._kwargs['ifd_hash'] = group_hash
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
@@ -410,7 +451,7 @@ class HoudiniMantraWrapper(object):
 
             if mtr1.is_tiled() == True:
                 join_tiles_action = BatchJoinTiles( mtr1.parms['output_picture']
-                                            , self._tiles_x, self._tiles_y
+                                            , mtr1._tiles_x, mtr1._tiles_y
                                             , mtr1.parms['priority'] + 1
                                             , make_proxy = mtr1._make_proxy 
                                             , start = mtr1.parms['start_frame']
@@ -575,6 +616,7 @@ class HoudiniWrapper(type):
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
+                        , 'altus' : AltusBatchRender
                     }
         return hou_drivers[name](*args, **kwargs)
 
@@ -600,7 +642,6 @@ class HaContextHoudini(object):
         if bool(hafarm_node.parm('job_on_hold').eval()) == True:
             job_on_hold = [ x.path() for x in hafarm_node.inputs() ]
 
-        
         global_parms = dict(
                   queue = str(hafarm_node.parm('queue').eval())
                 , group = str(hafarm_node.parm('group').eval())
@@ -704,6 +745,7 @@ class HaContextHoudiniExistingIfd(object):
         return graph
 
 
+
 class HaContextHoudiniMantra(object):
     def __init__(self, hafarm_node, global_parms):
         self.hafarm_node = hafarm_node
@@ -724,4 +766,5 @@ class HaContextHoudiniMantra(object):
             hou_node_type, index, deps, path = x
             for item in HoudiniWrapper( hou_node_type, index, path, houdini_dependencies[index], **self.global_parms ):
                 graph.add_node( item  )
+                houdini_nodes[item.index] = item
         return graph
