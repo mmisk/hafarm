@@ -670,7 +670,7 @@ class HaContextHoudini(object):
 
 
         hou.allowEnvironmentToOverwriteVariable('JOB', True)
-        hou.hscript('set JOB=' + os.environ.get('JOB'))
+        hou.hscript('set -g JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
         
         clsctx = None
