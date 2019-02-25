@@ -33,7 +33,7 @@ class HaContextNuke(object):
     def _queue_list(self):
         return ('3d', 'nuke', 'turbo_nuke', 'dev')
 
-    
+
     def _group_list(self):
         return ('allhosts', 'grafika', 'render', 'old_intel', 'new_intel')
 
