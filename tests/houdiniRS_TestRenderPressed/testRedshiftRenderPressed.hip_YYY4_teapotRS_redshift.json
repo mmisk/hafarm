@@ -35,7 +35,7 @@
     "layer_list": [], 
     "user": "snazarenko", 
     "submission_time": 1545147609.377305, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRedshiftRenderPressed.hip_YYY4_teapotRS.@TASK_ID/>.rs", 
+    "scene_file": "/tmp/render/sungrid/ifd/testRedshiftRenderPressed.hip_YYY4_teapotRS.@TASK_ID/>.rs", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "exe": "$REDSHIFT_COREDATAPATH/bin/redshiftCmdLine", 

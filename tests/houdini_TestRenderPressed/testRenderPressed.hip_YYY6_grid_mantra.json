@@ -4,7 +4,7 @@
     "testRenderPressed.hip_YYY6_grid_ifd"
   ], 
   "parms": {
-    "req_resources": "", 
+    "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -40,7 +40,7 @@
     "layer_list": [], 
     "user": "snazarenko", 
     "submission_time": 1545061450.378448, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderPressed.hip_YYY6_grid.@TASK_ID/>.ifd", 
+    "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_YYY6_grid.@TASK_ID/>.ifd", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "exe": "$HFS/bin/mantra", 

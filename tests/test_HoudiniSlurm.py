@@ -43,11 +43,11 @@ def tempdir(prefix, remove=True):
 
 
 regex_patterns = [
-     re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+     re.compile('/hafarm_slurm_test([0-9])_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
     ,re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
-    ,re.compile('hafarm_slurm_test2_MoreOptions([0-9a-z_]+)', flags=re.IGNORECASE)
+    ,re.compile('/hafarm_slurm_test([0-9])_MoreOptions([0-9a-z_]+)', flags=re.IGNORECASE)
     ,re.compile('houdini/(v?\\d+.\\d+.\\d+[\\-]?\\d+)') 
-    ,re.compile(os.environ['USER'])]
+    ,re.compile('/' + os.environ['USER'])]
 
 
 
@@ -109,7 +109,7 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
         def fix_jobdir(val):
             if isinstance(val, unicode):
                 for pat in regex_patterns:
-                    val = re.sub(pat, '_', val)
+                    val = re.sub(pat, '', val)
                 return val
             if isinstance(val, list):
                 return [ fix_jobdir(x) for x in  val]
@@ -124,8 +124,8 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
 
     def _test_job(self, job_expected, job_actual):
         for pat in regex_patterns:
-            job_expected = [re.sub(pat, '_', x) for x in job_expected if not 'HAFARM_VERSION' in x ]
-            job_actual = [re.sub(pat, '_', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
+            job_expected = [re.sub(pat, '', x) for x in job_expected if not 'HAFARM_VERSION' in x ]
+            job_actual = [re.sub(pat, '', x) for x in job_actual if not 'HAFARM_VERSION' in x ]
 
         self.assertListEqual(job_expected, job_actual, 'incorrect line')
         return True
@@ -152,7 +152,7 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
                     self.assertEqual(self._test_json(json_expected, json_actual), True, filename)
                 except AssertionError, e:
                     print "HA ERROR: in ######## %s ############" % filename
-                    print e
+                    raise Exception( e )
 
 
             if ext == '.job':
@@ -168,7 +168,7 @@ class TestTmpHoudiniSlurm(unittest.TestCase):
                     self.assertEqual(self._test_job(job_expected, job_actual), True, filename)
                 except AssertionError, e:
                     print "HA ERROR: in ######## %s ############" % filename
-                    print e
+                    raise Exception( e )
 
 
 

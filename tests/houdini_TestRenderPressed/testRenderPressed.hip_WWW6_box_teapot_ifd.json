@@ -1,6 +1,9 @@
 {
-  "class_name": "HoudiniAlembicWrapper", 
-  "inputs": [], 
+  "class_name": "HoudiniIFDWrapper", 
+  "inputs": [
+    "testRenderPressed.hip_WWW2_teapot_geometry", 
+    "testRenderPressed.hip_WWW4_box_geometry"
+  ], 
   "parms": {
     "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
@@ -14,7 +17,7 @@
     "max_running_tasks": 1000, 
     "req_start_time": 0.0, 
     "exclude_list": [], 
-    "group": "renders", 
+    "group": "renders_root", 
     "req_memory": 0, 
     "hold_jid_ad": [], 
     "post_render_script": "", 
@@ -22,23 +25,25 @@
     "command_arg": [
       "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
       "--ignore_tiles", 
-      "-d /out/alembic"
+      "-d /out/box_teapot", 
+      "--generate_ifds", 
+      "--ifd_name testRenderPressed.hip_WWW6_box_teapot"
     ], 
-    "step_frame": 240, 
+    "step_frame": 8, 
     "req_tmpdir": 32, 
-    "priority": -500, 
+    "priority": -100, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX13_alembic_alembic", 
+    "job_name": "testRenderPressed.hip_WWW6_box_teapot_ifd", 
     "email_stdout": false, 
     "start_frame": 1, 
     "target_list": [
-      "/out/alembic"
+      "/out/box_teapot"
     ], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1545061450.638873, 
-    "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_XX13_alembic_alembic.hip", 
+    "submission_time": 1547214629.100051, 
+    "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_WWW6_box_teapot_ifd.hip", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "exe": "$HFS/bin/hython", 
@@ -48,8 +53,8 @@
     "job_asset_name": "snazarenko", 
     "req_license": "hbatch_lic=1", 
     "end_frame": 240, 
-    "queue": "3d", 
-    "output_picture": "/tmp/output.abc", 
+    "queue": "cuda_root", 
+    "output_picture": "/tmp/render/testRenderPressed.box_teapot.0001.exr", 
     "command": "{env} {exe} {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 

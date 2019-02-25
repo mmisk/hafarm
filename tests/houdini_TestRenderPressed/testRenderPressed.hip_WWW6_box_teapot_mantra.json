@@ -1,6 +1,8 @@
 {
-  "class_name": "HoudiniAlembicWrapper", 
-  "inputs": [], 
+  "class_name": "HoudiniMantra", 
+  "inputs": [
+    "testRenderPressed.hip_WWW6_box_teapot_ifd"
+  ], 
   "parms": {
     "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
@@ -14,52 +16,52 @@
     "max_running_tasks": 1000, 
     "req_start_time": 0.0, 
     "exclude_list": [], 
-    "group": "renders", 
+    "group": "renders_root", 
     "req_memory": 0, 
     "hold_jid_ad": [], 
     "post_render_script": "", 
     "hold_jid": [], 
     "command_arg": [
-      "/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/harender.py", 
-      "--ignore_tiles", 
-      "-d /out/alembic"
+      "-j", 
+      "0", 
+      "-V1", 
+      "-f", 
+      "@SCENE_FILE/>"
     ], 
-    "step_frame": 240, 
+    "step_frame": 1, 
     "req_tmpdir": 32, 
-    "priority": -500, 
+    "priority": -100, 
     "make_proxy": false, 
     "email_stderr": false, 
-    "job_name": "testRenderPressed.hip_XX13_alembic_alembic", 
+    "job_name": "testRenderPressed.hip_WWW6_box_teapot_mantra", 
     "email_stdout": false, 
     "start_frame": 1, 
-    "target_list": [
-      "/out/alembic"
-    ], 
+    "target_list": [], 
     "layer_list": [], 
     "user": "snazarenko", 
-    "submission_time": 1545061450.638873, 
-    "scene_file": "/tmp/render/sungrid/jobScript/testRenderPressed.hip_XX13_alembic_alembic.hip", 
+    "submission_time": 1547214629.099514, 
+    "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_WWW6_box_teapot.@TASK_ID/>.ifd", 
     "ignore_check": false, 
     "job_current": "sandbox", 
-    "exe": "$HFS/bin/hython", 
+    "exe": "$HFS/bin/mantra", 
     "email_list": [
       "s.nazarenko@human-ark.com"
     ], 
     "job_asset_name": "snazarenko", 
-    "req_license": "hbatch_lic=1", 
+    "req_license": "mantra_lic=1", 
     "end_frame": 240, 
-    "queue": "3d", 
-    "output_picture": "/tmp/output.abc", 
-    "command": "{env} {exe} {command_arg} {scene_file}", 
+    "queue": "cuda_root", 
+    "output_picture": "/tmp/render/testRenderPressed.box_teapot.0001.exr", 
+    "command": "{env} {exe} -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py --proxy \" {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 
     "script_path": "$JOB/render/sungrid/jobScript", 
     "frame_range_arg": [
-      "-f %s %s -i %s", 
-      "start_frame", 
-      "end_frame", 
-      1
+      "%s%s%s", 
+      "", 
+      "", 
+      ""
     ], 
     "tile_y": 1, 
     "tile_x": 1

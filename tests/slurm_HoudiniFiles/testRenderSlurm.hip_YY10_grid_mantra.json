@@ -41,7 +41,7 @@
     "layer_list": [], 
     "user": "snazarenko", 
     "submission_time": 1545142718.95278, 
-    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderSlurm.hip_YY10_grid.@TASK_ID/>.ifd", 
+    "scene_file": "/tmp/render/sungrid/ifd/testRenderSlurm.hip_YY10_grid.@TASK_ID/>.ifd", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "exe": "$HFS/bin/mantra", 

@@ -4,7 +4,7 @@
     "testRenderPressed.hip_XXX6_box_teapot_ifd"
   ], 
   "parms": {
-    "req_resources": "", 
+    "req_resources": "procslots=0", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 

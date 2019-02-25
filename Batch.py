@@ -140,6 +140,7 @@ class BatchJoinTiles(BatchBase):
         self.parms['make_proxy'] = kwargs.get('make_proxy', False)
         start = kwargs.get('start', 1)
         end = kwargs.get('end', 1)
+        self.parms['env'] << 'rez env oiio --'
         self.parms['job_name'] << { 'render_driver_type': 'merge' }
         self.parms['command_arg'] = [    '-x %s' % tiles_x 
                                         ,'-y %s' % tiles_y 
@@ -147,6 +148,6 @@ class BatchJoinTiles(BatchBase):
                                         ,'-o %s' % filename
                                         ,'-m %s' % self.parms['scene_file']
                                     ]
-        self.parms['exe'] = 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py'
+        self.parms['exe'] = 'python $HAFARM_HOME/scripts/merge_tiles.py'
 
 
