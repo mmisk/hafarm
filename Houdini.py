@@ -294,7 +294,7 @@ class AltusBatchRender(BatchBase):
         self.index = index
         self.parms['queue'] = 'cuda'
         self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
-        self.parms['command'] << '{exe} {command_arg} '
+        self.parms['command'] << '{env} {exe} {command_arg} '
         self.parms['req_memory'] = 16
 
         key1, key2 = depends
@@ -312,8 +312,8 @@ class AltusBatchRender(BatchBase):
         tmp   = utils.padding(mtr1.parms['output_picture'])
         pass1 = mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
         pass2 = mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-        mtr1.parms['command'] << '{exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
-        mtr2.parms['command'] << '{exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
+        mtr1.parms['command'] << '{env} {exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
+        mtr2.parms['command'] << '{env} {exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
 
         pad = utils.padding(beaty)
 
@@ -358,7 +358,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         else:
             if self._make_proxy == True:
                 mantra_filter += ' --proxy '
-            self.parms['command'] << '{exe} -P "%s" {command_arg} {scene_file}' % mantra_filter
+            self.parms['command'] << '{env} {exe} -P "%s" {command_arg} {scene_file}' % mantra_filter
         self.parms['tile_x'] = self._tiles_x
         self.parms['tile_y'] = self._tiles_y
         self.parms['exe'] = '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval())
