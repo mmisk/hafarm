@@ -312,8 +312,8 @@ class AltusBatchRender(BatchBase):
         tmp   = utils.padding(mtr1.parms['output_picture'])
         pass1 = mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
         pass2 = mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-        mtr1.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
-        mtr2.parms['command'] << '{exe} {command_arg} {scene_file} {output_picture}'
+        mtr1.parms['command'] << '{exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
+        mtr2.parms['command'] << '{exe} -P "$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py" {command_arg} {scene_file} {output_picture}'
 
         pad = utils.padding(beaty)
 
