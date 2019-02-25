@@ -295,6 +295,7 @@ class AltusBatchRender(BatchBase):
         self.parms['queue'] = 'cuda'
         self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
         self.parms['command'] << '{exe} {command_arg} '
+        self.parms['req_memory'] = 16
 
         key1, key2 = depends
         mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2] 
@@ -418,28 +419,13 @@ class HoudiniMantraWrapper(object):
         
         elif 'denoise' in kwargs:
             self._kwargs['ifd_hash'] = group_hash
-            mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass1', **self._kwargs )
-            mtr2 = HoudiniMantra( str(uuid4()), path, [ifd.index], driver_type_prefix='_pass2', **self._kwargs )
-
-            tmp   = utils.padding(mtr1.parms['output_picture'])
-            beaty = mtr1.parms['output_picture']
-            mtr1.parms['output_picture'] = tmp[0][:-1] + "_pass1." + const.TASK_ID + tmp[3]
-            mtr2.parms['output_picture'] = tmp[0][:-1] + "_pass2." + const.TASK_ID + tmp[3]
-            filter_ = '$HAFARM_HOME/scripts/houdini/mantraRender4Altus.py'
-            mtr1.parms['command'] << '{exe} -P "%s --denoise" {command_arg} {scene_file} {output_picture}' % filter_
-            mtr2.parms['command'] << '{exe} -P "%s --denoise" {command_arg} {scene_file} {output_picture}' % filter_
-
-            altus = AltusBatchRender( 
-                beaty,
-                mtr1.parms['output_picture'], 
-                mtr2.parms['output_picture'], 
-                mtr2.parms, 
-                job_data = ifd.parms['job_name'].data()
-                )
-
-            altus.add(mtr1,mtr2)
-            self.append_instances( mtr1, mtr2, altus )
-            last_node = altus
+            mtr = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
+            self.append_instances( mtr )
+            last_node = mtr
+            for k, m in houdini_dependencies.iteritems():
+                if ifd.index in m:
+                    m.remove(ifd.index)
+                    m += [last_node.index]
         else:
             mtr1 = HoudiniMantra( str(uuid4()), path, [ifd.index], ifd_hash=group_hash, **self._kwargs )
             self.append_instances( mtr1 )
