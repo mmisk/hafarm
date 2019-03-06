@@ -27,7 +27,7 @@ else:
 
 
 
-DENOISERS = ('altus', 'bcd')
+DENOISERS = ('altus', 'bcd', 'iodn')
 
 
 

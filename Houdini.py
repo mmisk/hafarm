@@ -26,6 +26,21 @@ from parms import HaFarmParms
 houdini_dependencies = {}
 houdini_nodes = {}
 
+
+def hda_denoise_ui_proccess(hafarm_node):
+    hafarm_node.deleteItems( [ x for x in hafarm_node.children() if x.type().name() in ('altus', 'bcd', 'iodn') ] )
+    parm = hafarm_node.parm('denoise')
+    value = str(parm.eval())
+    index = parm.menuItems().index(value)
+    x = parm.menuLabels()[index]
+    if x == 'altus':
+        hafarm_node.createNode('altus') 
+    if x == 'bcd':
+        hafarm_node.createNode('bcd') 
+    if x == 'iodn':
+        hafarm_node.createNode('iodn') 
+
+
 # hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 def get_ifd_files(ifds):
     ifds = ifds.strip()
@@ -453,6 +468,20 @@ class AltusBatchRender(BatchBase):
 
 
 
+class BcdBatchRender(AltusBatchRender):
+    def __init__(self, index, path, depends, **kwargs):
+        name = 'bcd'
+        tags = '/hafarm/bcd'
+
+
+
+class IodnBatchRender(AltusBatchRender):
+    def __init__(self, index, path, depends, **kwargs):
+        name = 'iodn'
+        tags = '/hafarm/iodn'
+
+
+
 class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -507,7 +536,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         return self.hou_node.parm('vm_picture').eval()
 
 
-        
+    # hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 class HoudiniMantraWrapper(object):
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
@@ -711,6 +740,8 @@ class HoudiniWrapper(type):
                         , 'comp': HoudiniCompositeWrapper
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
                         , 'altus' : AltusBatchRender
+                        , 'bcd' : BcdBatchRender
+                        , 'iodn' : IodnBatchRender
                     }
 
         kwargs = join_hafarms(*hafarms)
