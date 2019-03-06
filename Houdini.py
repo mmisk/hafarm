@@ -90,8 +90,6 @@ def join_hafarms(*hafarm_nodes):
                                                 , start_frame = self.hafarm_node.parm("ifd_range1").eval()
                                                 , end_frame = self.hafarm_node.parm("ifd_range2").eval()
                                             )
-            # if hafarm_node.parm('altus').eval() == True:
-            # global_parms.update( { 'altus': True } )
 
             more = bool(hafarm_node.parm('more').eval())
 
@@ -120,6 +118,7 @@ def join_hafarms(*hafarm_nodes):
                     , mantra_filter = hafarm_node.parm("ifd_filter").eval()
                     , tile_x = tile_x
                     , tile_y = tile_y
+                    , denoise = hafarm_node.parm('denoise').eval()
                     , render_exists_ifd = render_from_ifd
                     , cpu_share = hafarm_node.parm("cpu_share").eval()
                     , max_running_tasks = hafarm_node.parm('max_running_tasks').eval() if more else const.hafarm_defaults['max_running_tasks']
@@ -556,7 +555,7 @@ class HoudiniMantraWrapper(object):
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
         
-        elif 'denoise' in kwargs:
+        elif kwargs.get( 'denoise', 0 ) > 0 :
             self._kwargs['ifd_hash'] = group_hash
             mtr = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
             self.append_instances( mtr )
