@@ -408,17 +408,16 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
 
 
 
-class DenoiseBatchRender(BatchBase):
+class DenoiseBatchRender(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         name = 'denoise'
         tags = '/hafarm/denoise'
-        super(DenoiseBatchRender, self).__init__(name, tags, **kwargs)
+        super(DenoiseBatchRender, self).__init__(index, path, depends, **kwargs)
 
 
         parm = self.hou_node.parent().parm('denoise')
         value = str(parm.eval())
-        index = parm.menuItems().index(value)
-        x = parm.menuLabels()[index]
+        x = parm.menuLabels()[ parm.menuItems().index(value) ]
         
         if x == 'altus':
             print "Altus"
@@ -437,7 +436,7 @@ class DenoiseBatchRender(BatchBase):
         key1, key2 = depends
         mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2] 
 
-        self.parms['job_name'] << { 'render_driver_type': 'altus' 
+        self.parms['job_name'] << { 'render_driver_type': 'denoise' 
                                     , "render_driver_name": hou.node(path).name()  }
         self.add(mtr1, mtr2)
 
@@ -532,7 +531,6 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         return self.hou_node.parm('vm_picture').eval()
 
 
-    # hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 class HoudiniMantraWrapper(object):
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
