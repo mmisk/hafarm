@@ -1,2 +1,5 @@
 .nfs*
 *.pyc
+
+
+examples/houdini/otls/backup/*
