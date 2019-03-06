@@ -28,20 +28,15 @@ houdini_nodes = {}
 
 
 def hda_denoise_ui_proccess(hafarm_node):
-    hafarm_node.deleteItems( [ x for x in hafarm_node.children() if x.type().name() in ('altus', 'bcd', 'iodn') ] )
+    hafarm_node.deleteItems( [ x for x in hafarm_node.children() if x.type().name() in ('denoise') ] )
     parm = hafarm_node.parm('denoise')
     value = str(parm.eval())
     index = parm.menuItems().index(value)
     x = parm.menuLabels()[index]
-    if x == 'altus':
-        hafarm_node.createNode('altus') 
-    if x == 'bcd':
-        hafarm_node.createNode('bcd') 
-    if x == 'iodn':
-        hafarm_node.createNode('iodn') 
+    if x in ('altus', 'bcd', 'iodn'):
+        hafarm_node.createNode('denoise') 
 
 
-# hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 def get_ifd_files(ifds):
     ifds = ifds.strip()
     if not os.path.exists(ifds):
@@ -414,11 +409,26 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
 
 
 
-class AltusBatchRender(BatchBase):
+class DenoiseBatchRender(BatchBase):
     def __init__(self, index, path, depends, **kwargs):
-        name = 'altus'
-        tags = '/hafarm/altus'
-        super(AltusBatchRender, self).__init__(name, tags, **kwargs)
+        name = 'denoise'
+        tags = '/hafarm/denoise'
+        super(DenoiseBatchRender, self).__init__(name, tags, **kwargs)
+
+
+        parm = self.hou_node.parent().parm('denoise')
+        value = str(parm.eval())
+        index = parm.menuItems().index(value)
+        x = parm.menuLabels()[index]
+        
+        if x == 'altus':
+            print "Altus"
+        if x == 'bcd':
+            print "Bcd"
+        if x == 'iodn':
+            print "Iodn"
+
+
         self.index = index
         self.parms['queue'] = 'cuda'
         self.parms['exe'] = '$HAFARM_HOME/scripts/denoise.py '
@@ -466,19 +476,6 @@ class AltusBatchRender(BatchBase):
     def __iter__(self):
         yield self
 
-
-
-class BcdBatchRender(AltusBatchRender):
-    def __init__(self, index, path, depends, **kwargs):
-        name = 'bcd'
-        tags = '/hafarm/bcd'
-
-
-
-class IodnBatchRender(AltusBatchRender):
-    def __init__(self, index, path, depends, **kwargs):
-        name = 'iodn'
-        tags = '/hafarm/iodn'
 
 
 
@@ -739,9 +736,7 @@ class HoudiniWrapper(type):
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
-                        , 'altus' : AltusBatchRender
-                        , 'bcd' : BcdBatchRender
-                        , 'iodn' : IodnBatchRender
+                        , 'denoise' : DenoiseBatchRender
                     }
 
         kwargs = join_hafarms(*hafarms)
