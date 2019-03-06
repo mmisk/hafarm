@@ -751,9 +751,6 @@ class HaContextHoudini(object):
             raise Exception('Please, select the HaFarm node.')
         
 
-        if hafarm_node.parm('denoise').eval() == True:
-            global_parms.update( { 'denoise': 'altus' } )
-
         hou.allowEnvironmentToOverwriteVariable('JOB', True)
         hou.hscript('set -g JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
