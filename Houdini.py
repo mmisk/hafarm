@@ -90,8 +90,6 @@ def join_hafarms(*hafarm_nodes):
                                                 , start_frame = self.hafarm_node.parm("ifd_range1").eval()
                                                 , end_frame = self.hafarm_node.parm("ifd_range2").eval()
                                             )
-            # if hafarm_node.parm('altus').eval() == True:
-            # global_parms.update( { 'altus': True } )
 
             more = bool(hafarm_node.parm('more').eval())
 
@@ -120,6 +118,7 @@ def join_hafarms(*hafarm_nodes):
                     , mantra_filter = hafarm_node.parm("ifd_filter").eval()
                     , tile_x = tile_x
                     , tile_y = tile_y
+                    , denoise = hafarm_node.parm('denoise').eval()
                     , render_exists_ifd = render_from_ifd
                     , cpu_share = hafarm_node.parm("cpu_share").eval()
                     , max_running_tasks = hafarm_node.parm('max_running_tasks').eval() if more else const.hafarm_defaults['max_running_tasks']
@@ -409,17 +408,16 @@ class HoudiniMantraExistingIfdWrapper(HoudiniNodeWrapper):
 
 
 
-class DenoiseBatchRender(BatchBase):
+class DenoiseBatchRender(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         name = 'denoise'
         tags = '/hafarm/denoise'
-        super(DenoiseBatchRender, self).__init__(name, tags, **kwargs)
+        super(DenoiseBatchRender, self).__init__(index, path, depends, **kwargs)
 
 
         parm = self.hou_node.parent().parm('denoise')
         value = str(parm.eval())
-        index = parm.menuItems().index(value)
-        x = parm.menuLabels()[index]
+        x = parm.menuLabels()[ parm.menuItems().index(value) ]
         
         if x == 'altus':
             print "Altus"
@@ -438,7 +436,7 @@ class DenoiseBatchRender(BatchBase):
         key1, key2 = depends
         mtr1, mtr2 = houdini_nodes[key1], houdini_nodes[key2] 
 
-        self.parms['job_name'] << { 'render_driver_type': 'altus' 
+        self.parms['job_name'] << { 'render_driver_type': 'denoise' 
                                     , "render_driver_name": hou.node(path).name()  }
         self.add(mtr1, mtr2)
 
@@ -533,7 +531,6 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         return self.hou_node.parm('vm_picture').eval()
 
 
-    # hou.pwd().createNode('altus') if hou.pwd().parm('denoise').eval() == 1 else hou.pwd().deleteItems( [ x for x in hou.pwd().children() if x.type().name() == 'altus' ] )
 class HoudiniMantraWrapper(object):
     def __init__(self, index, path, depends, **kwargs):
         self._items = []
@@ -556,7 +553,7 @@ class HoudiniMantraWrapper(object):
                     m.remove(ifd.index)
                     m += [ x.index for x in self.graph_items( class_type_filter=HoudiniMantraWrapper ) ]
         
-        elif 'denoise' in kwargs:
+        elif kwargs.get( 'denoise', 0 ) > 0 :
             self._kwargs['ifd_hash'] = group_hash
             mtr = HoudiniMantra( str(uuid4()), path, [ifd.index], **self._kwargs )
             self.append_instances( mtr )
