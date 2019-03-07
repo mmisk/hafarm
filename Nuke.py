@@ -19,7 +19,7 @@ class HaContextNuke(object):
     def _get_graph(self, **kwargs):
         job = os.getenv('JOB_CURRENT', 'none')
         nuke.scriptSave()
-        graph = HaGraph()
+        graph = HaGraph(graph_items_args=[])
         if not 'target_list' in kwargs:
             kwargs['target_list'] = [x.name() for x in self._write_node_list() ]
 
