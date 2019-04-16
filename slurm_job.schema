@@ -36,6 +36,10 @@
 {%- if group %}
 {% if group != "allhosts" %}#SBATCH -C {{ group }}{% endif %}
 {%- endif %}
+{%- if slurm_exclude_nodes %}
+#SBATCH --exclude={{ slurm_exclude_nodes|join(',') }}
+{%- endif %}
+
 
 HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
