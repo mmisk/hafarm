@@ -529,6 +529,11 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
             self.parms['scene_file'] << { 'scene_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
 
+        HOUDINI_MAJOR_VERSION = int(os.environ.get('REZ_HOUDINI_MAJOR_VERSION','0'))
+        HOUDINI_MINOR_VERSION = int(os.environ.get('REZ_HOUDINI_MINOR_VERSION','0'))
+        if (HOUDINI_MAJOR_VERSION >= 17) and (HOUDINI_MINOR_VERSION >= 5):
+            self.parms['group'] = 'new_intel' # grafika&render&
+
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.ifd' }
