@@ -132,6 +132,15 @@ def join_hafarms(*hafarm_nodes):
         return ret
 
 
+test_output_hscript_render="""1 [ ] /out/teapot       1 2 3 4 5 
+2 [ ] /out/box  1 2 3 4 5 
+3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
+4 [ ] /out/geometry1    1 2 3 4 5 
+5 [ 4 ] /out/alembic    1 2 3 4 5 
+6 [ 5 ] /out/grid       1 2 3 4 5 
+7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 """
+
+
 def get_hafarm_render_nodes(hafarm_node_path):
     hafarm_node = hou.node(hafarm_node_path)
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
@@ -143,7 +152,9 @@ def get_hafarm_render_nodes(hafarm_node_path):
         houdini_dependencies[index] = deps
         hou_node_type = hou.node(path).type().name()
         ret += [ [hou_node_type, index, deps, path, [ hafarm_node ] ] ]
+
     return ret
+
 
 
 def get_hafarm_list_deps(hafarm_node_path):
@@ -159,6 +170,18 @@ def get_hafarm_list_deps(hafarm_node_path):
                     if _item[3] == item[3]:
                         item[4] += _item[4]
     return hou_nodes
+
+
+
+class SkipWrapper(HaGraphItem):
+    def __init__(self, index, path, depends, **kwargs):
+        print depends
+    
+    def __iter__(self):
+        yield self
+
+    def copy_scene_file(self, **kwargs):
+        pass
 
 
 
@@ -733,6 +756,7 @@ class HoudiniWrapper(type):
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
+                        , 'Redshift_IPR': SkipWrapper
                         , 'denoise' : DenoiseBatchRender
                     }
 
@@ -755,6 +779,7 @@ class HaContextHoudini(object):
         for x in get_hafarm_list_deps(hafarm_node.path()):
             hou_node_type, index, deps, path, hafarms = x
             for item in HoudiniWrapper( hou_node_type, index, path, houdini_dependencies[index], hafarms ):
+                if item == None: continue
                 graph.add_node( item  )
                 houdini_nodes[item.index] = item
         return graph
