@@ -267,8 +267,8 @@ class HoudiniRSWrapper(HbatchWrapper):
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniRSWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_rs'
-        self.parms['req_license'] = 'hbatch_lic=1,redshift_lic=1'
-        self.parms['queue'] = 'cuda'
+        self.parms['req_license'] = 'hbatch_lic=1'
+        self.parms['queue'] = '3d'
         self.parms['job_name'] << { 'jobname_hash': self.get_jobname_hash(), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
@@ -604,7 +604,7 @@ class HoudiniMantraWrapper(object):
                                             , end = mtr1.parms['end_frame']
                                             , job_data = ifd.parms['job_name'].data()
                                             , ifd_hash = group_hash )
-                mtr1.parms['output_picture'] = join_tiles_action.parms['output_picture']
+                mtr1.parms['output_picture'] = join_tiles_action.tiled_picture()
 
                 join_tiles_action.add( mtr1 )
                 self.append_instances( join_tiles_action )
