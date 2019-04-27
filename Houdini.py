@@ -772,13 +772,12 @@ class HoudiniWrapper(type):
 
 class HaContextHoudini(object):
     def _get_graph(self, **kwargs):
+        hou.allowEnvironmentToOverwriteVariable('JOB', True)
+        hou.hscript('set JOB=' + os.environ.get('JOB'))
+
         hafarm_node = hou.pwd()
         if hafarm_node.type().name() != 'HaFarm':
             raise Exception('Please, select the HaFarm node.')
-
-        hou.allowEnvironmentToOverwriteVariable('JOB', True)
-        hou.hscript('set -g JOB=' + os.environ.get('JOB'))
-        hou.hipFile.save()
 
         graph = HaGraph(graph_items_args=[])
         for x in get_hafarm_list_deps(hafarm_node.path()):
