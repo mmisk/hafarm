@@ -18,10 +18,20 @@ from hafarm import SlurmRender
 class HaContextNuke(object):
     def _get_graph(self, **kwargs):
         job = os.getenv('JOB_CURRENT', 'none')
+
+        write_node_list = self._write_node_list()
+
+        proxy = nuke.root().knob('proxy').value() 
+        if proxy == True:
+            for write_node in write_node_list:
+                if write_node.knob('proxy').value() == "":
+                    err = 'You must specify a proxy file name to write in "%s" node' % write_node.name()
+                    raise Exception(err)
+
         nuke.scriptSave()
         graph = HaGraph(graph_items_args=[])
         if not 'target_list' in kwargs:
-            kwargs['target_list'] = [x.name() for x in self._write_node_list() ]
+            kwargs['target_list'] = [x.name() for x in write_node_list ]
 
         if not 'output_picture' in kwargs:
             kwargs['output_picture'] = str(nuke.root().node(kwargs['target_list'][0]).knob('file').getEvaluatedValue())
@@ -185,3 +195,13 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         self.email_Knob = nuke.Boolean_Knob('email', 'Send me mail when finished')
         self.email_Knob.setTooltip('Sends an email for every finised/aborded task.')
         self.addKnob(self.email_Knob)
+        self.separator5 = nuke.Text_Knob('')
+        self.addKnob(self.separator5)
+        self.proxy_Knob = nuke.Boolean_Knob('proxy', 'Render proxy')
+        self.proxy_Knob.setValue(nuke.root().knob('proxy').value())
+        self.addKnob(self.proxy_Knob)
+
+
+    def knobChanged(self,knob):
+        if nuke.thisKnob().name() == 'proxy':
+            nuke.root().knob('proxy').setValue(knob.value())

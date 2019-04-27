@@ -132,6 +132,15 @@ def join_hafarms(*hafarm_nodes):
         return ret
 
 
+test_output_hscript_render="""1 [ ] /out/teapot       1 2 3 4 5 
+2 [ ] /out/box  1 2 3 4 5 
+3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
+4 [ ] /out/geometry1    1 2 3 4 5 
+5 [ 4 ] /out/alembic    1 2 3 4 5 
+6 [ 5 ] /out/grid       1 2 3 4 5 
+7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 """
+
+
 def get_hafarm_render_nodes(hafarm_node_path):
     hafarm_node = hou.node(hafarm_node_path)
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
@@ -143,7 +152,9 @@ def get_hafarm_render_nodes(hafarm_node_path):
         houdini_dependencies[index] = deps
         hou_node_type = hou.node(path).type().name()
         ret += [ [hou_node_type, index, deps, path, [ hafarm_node ] ] ]
+
     return ret
+
 
 
 def get_hafarm_list_deps(hafarm_node_path):
@@ -159,6 +170,18 @@ def get_hafarm_list_deps(hafarm_node_path):
                     if _item[3] == item[3]:
                         item[4] += _item[4]
     return hou_nodes
+
+
+
+class SkipWrapper(HaGraphItem):
+    def __init__(self, index, path, depends, **kwargs):
+        print depends
+    
+    def __iter__(self):
+        yield self
+
+    def copy_scene_file(self, **kwargs):
+        pass
 
 
 
@@ -506,6 +529,11 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
             self.parms['scene_file'] << { 'scene_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
 
+        HOUDINI_MAJOR_VERSION = int(os.environ.get('REZ_HOUDINI_MAJOR_VERSION','0'))
+        HOUDINI_MINOR_VERSION = int(os.environ.get('REZ_HOUDINI_MINOR_VERSION','0'))
+        if (HOUDINI_MAJOR_VERSION >= 17) and (HOUDINI_MINOR_VERSION >= 5):
+            self.parms['group'] = 'new_intel' # grafika&render&
+
         self.parms['scene_file'] << { 'scene_file_path': kwargs['ifd_path']
                                         , 'scene_file_basename': self.parms['job_name'].data()['job_basename']
                                         , 'scene_file_ext': '.ifd' }
@@ -733,6 +761,7 @@ class HoudiniWrapper(type):
                         , 'geometry': HoudiniGeometryWrapper
                         , 'comp': HoudiniCompositeWrapper
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
+                        , 'Redshift_IPR': SkipWrapper
                         , 'denoise' : DenoiseBatchRender
                     }
 
@@ -746,17 +775,16 @@ class HaContextHoudini(object):
         hafarm_node = hou.pwd()
         if hafarm_node.type().name() != 'HaFarm':
             raise Exception('Please, select the HaFarm node.')
-        
 
         hou.allowEnvironmentToOverwriteVariable('JOB', True)
         hou.hscript('set -g JOB=' + os.environ.get('JOB'))
         hou.hipFile.save()
 
-
         graph = HaGraph(graph_items_args=[])
         for x in get_hafarm_list_deps(hafarm_node.path()):
             hou_node_type, index, deps, path, hafarms = x
             for item in HoudiniWrapper( hou_node_type, index, path, houdini_dependencies[index], hafarms ):
+                if item == None: continue
                 graph.add_node( item  )
                 houdini_nodes[item.index] = item
         return graph
