@@ -128,8 +128,8 @@ class BatchJoinTiles(BatchBase):
         
         filepath, padding, ext = filename.rsplit('.',2)
         path, basename = os.path.split(filepath)
-        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%s' }
-        output_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%0d' }
+        self._tiled_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
 
         self.parms['output_picture'] = '.'.join([filepath, const.TASK_ID, ext])
         self.parms['scene_file'] << mask_filename
@@ -140,14 +140,17 @@ class BatchJoinTiles(BatchBase):
         self.parms['make_proxy'] = kwargs.get('make_proxy', False)
         start = kwargs.get('start', 1)
         end = kwargs.get('end', 1)
-        self.parms['env'] << 'rez env oiio --'
         self.parms['job_name'] << { 'render_driver_type': 'merge' }
         self.parms['command_arg'] = [    '-x %s' % tiles_x 
                                         ,'-y %s' % tiles_y 
-                                        ,'-f %s' % const.TASK_ID 
-                                        ,'-o %s' % filename
-                                        ,'-m %s' % self.parms['scene_file']
+                                        ,'-f %s' % const.TASK_ID
+                                        ,'-o %s' % self.parms['output_picture'] 
+                                        ,'-m %s' % mask_filename 
                                     ]
-        self.parms['exe'] = 'python $HAFARM_HOME/scripts/merge_tiles.py'
+        self.parms['command'] << 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py {command_arg}'
+
+
+    def tiled_picture(self):
+        return self._tiled_picture
 
 
