@@ -51,9 +51,8 @@ for tile in `seq 0 {{ (tile_x * tile_y)-1 }}`; do
 	pids[${i}]=$!
 done
 
-for pid in ${pids[*]}; do
-	wait $pid
-done
+
+wait
 
 exit_code=0
 
