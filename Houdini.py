@@ -206,6 +206,7 @@ class HoudiniNodeWrapper(HaGraphItem):
         self.parms['priority'] = kwargs['priority']
         self.parms['queue'] = kwargs['queue']
         self.parms['group'] = kwargs['group']
+        self.parms['exclude_list'] = kwargs['exclude_list']
         self.parms['req_start_time'] = kwargs['req_start_time']
         self.parms['max_running_tasks'] = kwargs['max_running_tasks']
         self._scene_file = str(hou.hipFile.name())
@@ -268,7 +269,7 @@ class HoudiniRSWrapper(HbatchWrapper):
         super(HoudiniRSWrapper, self).__init__(index, path, depends, **kwargs)
         self.name += '_rs'
         self.parms['req_license'] = 'hbatch_lic=1'
-        self.parms['queue'] = '3d'
+        self.parms['queue'] = 'cuda'
         self.parms['job_name'] << { 'jobname_hash': self.get_jobname_hash(), 'render_driver_type': 'rs' }
         ifd_name = self.parms['job_name'].clone()
         ifd_name << { 'render_driver_type': '' }
@@ -289,7 +290,7 @@ class HoudiniRedshiftROP(HoudiniNodeWrapper):
         self.parms['req_license'] = 'redshift_lic=1'
         self.parms['req_memory'] = kwargs.get('mantra_ram')
         self.parms['pre_render_script'] = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HFS/dsolib"
-        self.parms['job_on_hold'] = False
+
         self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
         self.parms['end_frame'] = int(self.hou_node.parm('f2').eval())
 
@@ -524,7 +525,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
         self.parms['exe'] = '$HFS/bin/' +  str(self.hou_node.parm('soho_pipecmd').eval())
         self.parms['start_frame'] = frame if frame else int(self.hou_node.parm('f1').eval())
         self.parms['end_frame'] = frame if frame else int(self.hou_node.parm('f2').eval())
-        self.parms['job_on_hold'] = False
+
         if kwargs.get('render_exists_ifd'):
             self.parms['scene_file'] << { 'scene_fullpath': kwargs.get('scene_file') }
             self.parms['output_picture'] = kwargs.get('output_picture')
