@@ -111,6 +111,7 @@ def join_hafarms(*hafarm_nodes):
                     , step_frame = hafarm_node.parm('step_frame').eval()
                     , ifd_path = hafarm_node.parm("ifd_path").eval()
                     , frames = frames
+                    , exclude_list = hafarm_node.parm('exclude_list').eval() if hafarm_node.parm('exclude_list') != None else []
                     , use_frame_list = use_frame_list
                     , make_proxy = bool(hafarm_node.parm("make_proxy").eval())
                     , make_movie = bool(hafarm_node.parm("make_movie").eval())
@@ -118,7 +119,7 @@ def join_hafarms(*hafarm_nodes):
                     , mantra_filter = hafarm_node.parm("ifd_filter").eval()
                     , tile_x = tile_x
                     , tile_y = tile_y
-                    , denoise = hafarm_node.parm('denoise').eval()
+                    , denoise = hafarm_node.parm('denoise').eval() if hafarm_node.parm('denoise') != None else "None"
                     , render_exists_ifd = render_from_ifd
                     , cpu_share = hafarm_node.parm("cpu_share").eval()
                     , max_running_tasks = hafarm_node.parm('max_running_tasks').eval() if more else const.hafarm_defaults['max_running_tasks']
@@ -776,11 +777,19 @@ class HaContextHoudini(object):
         hou.allowEnvironmentToOverwriteVariable('JOB', True)
         hou.hscript('set JOB=' + os.environ.get('JOB'))
 
-        hafarm_node = hou.pwd()
-        if hafarm_node.type().name() != 'HaFarm':
-            raise Exception('Please, select the HaFarm node.')
+        if kwargs.get('hafarm_node') != None:
+            hafarm_node = hou.node(kwargs.get('hafarm_node'))
+        else:
+            hafarm_node = hou.pwd()
+            if hafarm_node.type().name() != 'HaFarm':
+                raise Exception('Please, select the HaFarm node.')
+
+        hou.hipFile.save()
+
 
         graph = HaGraph(graph_items_args=[])
+        
+
         for x in get_hafarm_list_deps(hafarm_node.path()):
             hou_node_type, index, deps, path, hafarms = x
             for item in HoudiniWrapper( hou_node_type, index, path, houdini_dependencies[index], hafarms ):

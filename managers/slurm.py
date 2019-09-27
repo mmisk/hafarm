@@ -81,7 +81,7 @@ class Slurm(RenderManager):
 
         # There are cases where TASK_ID should be padded. 
         # TODO: I don't know how to specify padding length thought atm
-        scene_file  = scene_file.replace(const.TASK_ID_PADDED,  '$(python -c "frame=str( ${SLURM_ARRAY_TASK_ID} );  print frame.zfill(%s)")' \
+        scene_file  = scene_file.replace(const.TASK_ID_PADDED,  '$(python -c \\"frame=str( ${SLURM_ARRAY_TASK_ID} );  print frame.zfill(%s)\\")' \
             % self.parms['frame_padding_length'])
 
         # TODO: Look for general way of doing things like this...
@@ -96,21 +96,29 @@ class Slurm(RenderManager):
                 self.parms['command_arg'][i] = n.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
 
         self.parms['output_picture'] = self.parms['output_picture'].replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID') 
+
         # ATM Slurm does't support array dependency nor does allow
         # creating dependecy based on job's names (only jobids)
         # We need to ask Slurn for jobids providing it with our names.
         # NOTE: We treat array dependencies as simply dependencies for now.
         self.parms['slurm_aftercorr'] = []
+        self.parms['slurm_afterok'] = []
+
+        slurm_after_keyname = 'slurm_aftercorr' if self.parms['job_wait_dependency_entire'] == False else 'slurm_afterok'
+
         if self.parms['hold_jid'] or self.parms['hold_jid_ad']:
             deps = self.parms['hold_jid'] + self.parms['hold_jid_ad']
             # get_jobids_by_name returns a list: [jobid, ...]
             deps = [self.get_jobid_by_name(name) for name in deps]
             # Flattern array of arrays:
             deps = list(set([str(item) for sublist in deps for item in sublist]))
-            self.parms['slurm_aftercorr'] = deps
+            self.parms[slurm_after_keyname] = deps
+
 
         self.parms['scene_file'] << { 'scene_fullpath': scene_file }
         self.parms['priority'] = min(max((self.parms['priority'] * -1), -10000), 10000)
+
+        self.parms['slurm_exclude_nodes'] = self.parms['exclude_list']
 
         slurm_template = None
         if self.parms['tile_x'] * self.parms['tile_x'] > 1:
@@ -119,9 +127,6 @@ class Slurm(RenderManager):
             slurm_template = TEMPLATE_ENVIRONMENT.get_template('slurm_job.schema')
         
         rendered = slurm_template.render(self.parms,env=os.environ)
-
-
-        rendered = rendered.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
 
         with open(script_path, 'w') as file:
             file.write(rendered)
@@ -143,12 +148,7 @@ class Slurm(RenderManager):
 
         # This should be clean uped. Either all with flag names or none. 
         arguments = ['sbatch']
-
-        job_current = os.environ['JOB_CURRENT']
-        job_asset_type = os.environ['JOB_ASSET_TYPE']
-        job_asset_name = os.environ['JOB_ASSET_NAME']
-
-        arguments += ["-J %s" % self.parms['job_name'], '--export=NONE,JOB_CURRENT=%s,JOB_ASSET_TYPE=%s,JOB_ASSET_NAME=%s' % (job_current,job_asset_type,job_asset_name), workdir, stdout, stderr, script_path]
+        arguments += ["-J %s" % self.parms['job_name'], '--export=ALL', workdir, stdout, stderr, script_path]
 
         # FIXME: Temporary cleanup: 
         cc = []
@@ -164,7 +164,7 @@ class Slurm(RenderManager):
             else:
                 if word != "":
                     cc.append(str(word))
-                 
+
         self.sbatch_command = cc 
         return cc
 
@@ -181,6 +181,7 @@ class Slurm(RenderManager):
         # TODO: What we should do with output?
         try:
             result = subprocess.call(command, stdout=subprocess.PIPE)
+            # print ' '.join(command)
             return result
         except subprocess.CalledProcessError, why:
             return why

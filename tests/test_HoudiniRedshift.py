@@ -23,8 +23,6 @@ def tempdir(prefix):
         raise
     shutil.rmtree(dirpath)
 
-os.environ['REZ_USED_RESOLVE'] = "test_package-1.0.0"    
-
 
 # FIXME: Just Can't handle it. Studio installed version breaks tests. 
 # Tests with relative paths break while running cases because tested 
@@ -139,24 +137,19 @@ class TestRenderPressed(unittest.TestCase):
 
         output_directory = os.path.split(json_files[0])[0]
 
-        for filename in json_expected_files:
+        for n in json_expected_files:
             json_actual = {}
             json_expected = {}
 
-            with open(output_directory + os.sep + filename) as f:
+            with open(output_directory + os.sep + n) as f:
                 json_actual = json.load(f)
 
-            with open(self.TST_DIRECTORY + os.sep + filename ) as f:
+            with open(self.TST_DIRECTORY + os.sep + n ) as f:
                 json_expected = json.load(f)
-            
-            try:
-                self.assertEqual(self._test_json(json_expected, json_actual), True, filename)
-            except AssertionError, e:
-                    print "HA ERROR: in ######## %s ############" % filename
-                    print e
 
+            self.assertEqual(self._test_json(json_expected, json_actual), True, n)
 
-
+    
     def test_Hafarm1(self):
         with tempdir('hafarm_houRS_test_Hafarm1') as tmppath:
             hou.setPwd(self.root)
@@ -175,7 +168,6 @@ class TestRenderPressed(unittest.TestCase):
             self._test_files(json_expected_files, json_files)
 
         return True
-
 
 
 #if __name__ == '__main__':

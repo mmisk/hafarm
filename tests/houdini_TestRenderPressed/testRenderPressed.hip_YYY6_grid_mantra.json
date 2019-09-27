@@ -4,7 +4,7 @@
     "testRenderPressed.hip_YYY6_grid_ifd"
   ], 
   "parms": {
-    "req_resources": "procslots=0", 
+    "req_resources": "", 
     "log_path": "$JOB/render/sungrid/log", 
     "cpu_share": 1.0, 
     "frame_list": "", 
@@ -40,7 +40,7 @@
     "layer_list": [], 
     "user": "snazarenko", 
     "submission_time": 1545061450.378448, 
-    "scene_file": "/tmp/render/sungrid/ifd/testRenderPressed.hip_YYY6_grid.@TASK_ID/>.ifd", 
+    "scene_file": "/PROD/dev/sandbox/user/snazarenko/render/sungrid/ifd/testRenderPressed.hip_YYY6_grid.@TASK_ID/>.ifd", 
     "ignore_check": false, 
     "job_current": "sandbox", 
     "exe": "$HFS/bin/mantra", 
@@ -52,7 +52,7 @@
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "/tmp/render/testRenderPressed.grid.0001.exr", 
-    "command": "{env} {exe} -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py\" {command_arg} {scene_file}", 
+    "command": "{exe} -P \"/home/snazarenko/packages/hafarm/2.0.0/py/hafarm/scripts/houdini/mantraFilterIfd.py\" {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 

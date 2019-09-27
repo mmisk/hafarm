@@ -25,8 +25,6 @@ def tempdir(prefix):
     shutil.rmtree(dirpath)
 
 
-os.environ['REZ_USED_RESOLVE'] = "test_package-1.0.0"
-
 # FIXME: Just Can't handle it. Studio installed version breaks tests. 
 # Tests with relative paths break while running cases because tested 
 # objects import our modules and expects proper paths...
@@ -86,10 +84,8 @@ from hafarm import GraphvizRender
 
 HAFARM_TEST_DIRECTORY = os.environ['HAFARM_HOME'] + os.sep + 'tests'
 
-regex_patterns = [
-     re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
-    ,re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
-    ,re.compile(os.environ['USER']) ]
+pat1 = re.compile('hafarm_slurm_test1_SlurmFiles([0-9a-z_]+)', flags=re.IGNORECASE)
+pat2 = re.compile('hafarm/(v?\\d+.\\d+.\\d+)')
 
 class TestMantraRenderFrameList(unittest.TestCase):
     def setUp(self):
@@ -408,17 +404,12 @@ class TestRenderPressed(unittest.TestCase):
         self.assertDictEqual(expected, actual, "Expected %s != %s " %( json_expected["class_name"],  json_actual["class_name"]) )   
         
         expected, actual = {}, {}
-        tst_params = [   'scene_file', 'command_arg'
-                        , 'target_list', 'output_picture'
-                        , 'job_name', 'command', 'priority'
-                        , 'job_on_hold', 'queue', 'group'
-                        , 'req_memory', 'req_resources'
-                        , 'slots', 'max_running_tasks', 'req_start_time']
+        tst_params = ['scene_file', 'command_arg', 'target_list', 'output_picture', 'job_name', 'command'] 
         
         def fix_jobdir(val):
             if isinstance(val, unicode):
-                for pat in regex_patterns:
-                    val = re.sub(pat, '_', val)
+                val = re.sub(pat1, '_', val)
+                return re.sub(pat2, '_', val)
             if isinstance(val, list):
                 return [ fix_jobdir(x) for x in  val]
             return val
@@ -437,22 +428,17 @@ class TestRenderPressed(unittest.TestCase):
 
         output_directory = os.path.split(json_files[0])[0]
 
-        for filename in json_expected_files:
+        for n in json_expected_files:
             json_actual = {}
             json_expected = {}
 
-            with open(output_directory + os.sep + filename) as f:
+            with open(output_directory + os.sep + n) as f:
                 json_actual = json.load(f)
 
-            with open(self.TST_DIRECTORY + os.sep + filename) as f:
+            with open(self.TST_DIRECTORY + os.sep + n ) as f:
                 json_expected = json.load(f)
 
-            try:
-                self.assertEqual(self._test_json(json_expected, json_actual), True, filename)
-            except AssertionError, e:
-                    print "HA ERROR: in ######## %s ############" % filename
-                    print e
-
+            self.assertEqual(self._test_json(json_expected, json_actual), True, n)
 
     
     def test_Hafarm1(self):
@@ -481,11 +467,6 @@ class TestRenderPressed(unittest.TestCase):
             self.root.parm("make_proxy").set(True)
             self.root.parm("make_movie").set(True)
             self.root.parm("debug_images").set(True)
-
-            self.hafarm1.parm("make_proxy").set(True)
-            self.hafarm1.parm("make_movie").set(True)
-            self.hafarm1.parm("debug_images").set(True)
-
             hou.setPwd(self.root)
             ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'X'), xrange(1,90)))
             graph = ctx.get_graph()
@@ -516,52 +497,6 @@ class TestRenderPressed(unittest.TestCase):
             self._test_files(json_expected_files, json_files)
         
         return True
-
-
-    def test_Hafarm2_and_Hafarm1(self):
-        with tempdir('hafarm_hou_test_Hafarm3') as tmppath:
-
-            self.root.parm("group").set("renders_root")
-            self.root.parm("queue").set("cuda_root")
-            self.root.parm("priority").set(-100)
-            self.root.parm("job_on_hold").set(True)
-            self.root.parm("make_proxy").set(True)
-            self.root.parm("make_movie").set(True)
-            self.root.parm("debug_images").set(True)
-
-            self.hafarm1.parm("group").set("3d_hafarm1")
-            self.hafarm1.parm("queue").set("opencl_hafarm1")
-            self.hafarm1.parm("priority").set(-333)
-            self.hafarm1.parm("job_on_hold").set(True)
-            self.hafarm1.parm("make_proxy").set(False)
-            self.hafarm1.parm("make_movie").set(False)
-            self.hafarm1.parm("debug_images").set(False)
-
-            hou.setPwd(self.root)
-            ctx = HaContext.HaContext(external_hashes=map(lambda x: str(x).rjust(4,'W'), xrange(1,90)))
-            graph = ctx.get_graph()
-            json_files = graph.render(json_output_directory=tmppath, copy_scene_file=True)
-            json_files.sort()
-
-            self.assertEqual(len(json_files), 14, 'incorrect count files')
-
-            json_expected_files = [ 'testRenderPressed.hip_WW13_alembic_alembic.json'
-                                    ,'testRenderPressed.hip_WW15_grid_ifd.json'
-                                    ,'testRenderPressed.hip_WW15_grid_mantra.json'
-                                    ,'testRenderPressed.hip_WW18_comp_comp.json'
-                                    ,'testRenderPressed.hip_WW18_comp_debug.json'
-                                    ,'testRenderPressed.hip_WW18_comp_mp4.json'
-                                    ,'testRenderPressed.hip_WW18_comp_reports.json'
-                                    ,'testRenderPressed.hip_WWW2_teapot_geometry.json'
-                                    ,'testRenderPressed.hip_WWW4_box_geometry.json'
-                                    ,'testRenderPressed.hip_WWW6_box_teapot_debug.json'
-                                    ,'testRenderPressed.hip_WWW6_box_teapot_ifd.json'
-                                    ,'testRenderPressed.hip_WWW6_box_teapot_mantra.json'
-                                    ,'testRenderPressed.hip_WWW6_box_teapot_mp4.json'
-                                    ,'testRenderPressed.hip_WWW6_box_teapot_reports.json' ]
-            
-            json_expected_files.sort()
-            self._test_files(json_expected_files, json_files)
 
 
 

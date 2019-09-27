@@ -27,6 +27,13 @@
 {%- if queue %}
 #SBATCH -p {{ queue }}
 {%- endif %}
+{%- if group %}
+{% if group != "allhosts" %}#SBATCH -C {{ group }}{% endif %}
+{%- endif %}
+{%- if slurm_exclude_nodes %}
+#SBATCH --exclude={{ slurm_exclude_nodes|join(',') }}
+{%- endif %}
+
 
 HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
@@ -47,10 +54,9 @@ echo Scene file  : {{ scene_file }}
 
 for tile in `seq 0 {{ (tile_x * tile_y)-1 }}`; do
 	output_image=`printf '{{ output_picture }}' ${tile}`
-	srun -N 1 --exclusive sh -c "{{ command }} -t count={{ tile_x }}x{{ tile_y }},index=${tile} {{ command_arg|join(' ') }} {{ scene_file }} $output_image " &
+	srun -N 1 sh -c "{{ command }} -t count={{ tile_x }}x{{ tile_y }},index=${tile} {{ command_arg|join(' ') }} {{ scene_file }} $output_image " &
 	pids[${i}]=$!
 done
-
 
 wait
 

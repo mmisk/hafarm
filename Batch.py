@@ -128,7 +128,7 @@ class BatchJoinTiles(BatchBase):
         
         filepath, padding, ext = filename.rsplit('.',2)
         path, basename = os.path.split(filepath)
-        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + '.%0d' }
+        mask_filename = { 'scene_file_ext': '.' + ext, 'scene_file_path': path, 'scene_file_basename': basename + TILES_SUFFIX + '.%0d' }
         self._tiled_picture = '.'.join([filepath + TILES_SUFFIX, const.TASK_ID, ext])
 
         self.parms['output_picture'] = '.'.join([filepath, const.TASK_ID, ext])
@@ -145,10 +145,9 @@ class BatchJoinTiles(BatchBase):
                                         ,'-y %s' % tiles_y 
                                         ,'-f %s' % const.TASK_ID
                                         ,'-o %s' % self.parms['output_picture'] 
-                                        ,'-m %s' % mask_filename 
+                                        ,'-m %s' % self.parms['scene_file'] 
                                     ]
-        self.parms['command'] << 'rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py {command_arg}'
-
+        self.parms['command'] << 'unset PYTHONHOME && rez env oiio -- python $HAFARM_HOME/scripts/merge_tiles.py {command_arg}'
 
     def tiled_picture(self):
         return self._tiled_picture

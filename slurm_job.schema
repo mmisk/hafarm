@@ -24,6 +24,9 @@
 {%- if slurm_aftercorr %}
 #SBATCH -d aftercorr:{{ slurm_aftercorr|join(',') }}
 {%- endif %}
+{%- if slurm_afterok %}
+#SBATCH -d afterok:{{ slurm_afterok|join(',') }}
+{%- endif %}
 {%- if email_list %}
 #SBATCH --mail-user={{ email_list|join(',') }}
 {%- endif %}
@@ -40,10 +43,11 @@
 #SBATCH --exclude={{ slurm_exclude_nodes|join(',') }}
 {%- endif %}
 
+export HA_MAYA_BATCH=1
 
 HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
-RANGE_FRAME=$[${SLURM_ARRAY_TASK_ID}+{{ step_frame }}]
+RANGE_FRAME=$[${SLURM_ARRAY_TASK_ID}+{{ step_frame }}-1]
 if ((${RANGE_FRAME}>${LAST_FRAME})); then RANGE_FRAME=${LAST_FRAME}; fi
 
 OUTPUT_PICTURE="{{ output_picture }}"

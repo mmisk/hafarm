@@ -16,6 +16,7 @@ SCENE_FILE = '@SCENE_FILE/>'
 RENDER_WRANGERS = ['renderfarm@human-ark.com']
 HAFARM_DEFAULT_BACKEND = 'Slurm'
 
+import sys
 import traceback 
 import os
 import json
@@ -80,6 +81,7 @@ class ConstantItem(object):
 
     def __repr__(self):
         rendered = parms_jinja_template.render(self._data,TASK_ID=TASK_ID)
+        # print >> sys.stderr, rendered
         parms = json.load(io.StringIO(str(rendered)))
         return '%s' % parms[self._name]
 
@@ -91,8 +93,8 @@ hafarm_defaults = dict( start_frame = 1,
                    tile_x = 1,
                    tile_y = 1,
                    queue = '3d',
-                   env = HaConstant('rez env $REZ_USED_RESOLVE --'),
                    group = '',
+                   env = '',
                    slots = 0,
                    cpu_share = 1.0,
                    priority = -500,
@@ -103,7 +105,7 @@ hafarm_defaults = dict( start_frame = 1,
                    hold_jid_ad = [],
                    target_list = [],
                    layer_list = [],
-                   command = HaConstant('{env} {exe} {command_arg} {scene_file}'),
+                   command = HaConstant('{exe} {command_arg} {scene_file}'),
                    command_arg = [],
                    email_list = [],
                    email_opt = '',
@@ -121,6 +123,7 @@ hafarm_defaults = dict( start_frame = 1,
                    job_asset_name = '',
                    job_asset_type = '',
                    job_current = '',
+                   job_wait_dependency_entire = False,
                    exe = '',
                    rerun_on_error = True,
                    submission_time = 0.0,
