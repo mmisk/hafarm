@@ -53,6 +53,8 @@ class HaContextNuke(object):
 
 
 
+
+
 class NukeWrapper(HaGraphItem):
     def __init__(self, *args, **kwargs):
         index, name = str(uuid4()), 'nuke'
@@ -127,8 +129,8 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         if self.requestSlots_Knob.value():
             global_params.update( {'req_resources': 'procslots=%s' % int(self.slotsKnob.value()) } )
         
-        if self.email_Knob.value():
-            global_params.update( {'email_list': [utils.get_email_address()]} )
+        # if self.email_Knob.value():
+        #     global_params.update( {'email_list': [utils.get_email_address()]} )
         
         graph = self._ctx._get_graph(**global_params)
         graph.set_render(SlurmRender.SlurmRender)
@@ -192,9 +194,9 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         self.hold_Knob = nuke.Boolean_Knob('hold', 'Submit job on hold')
         self.hold_Knob.setTooltip("Job won't start unless manually unhold in qmon.")
         self.addKnob(self.hold_Knob)
-        self.email_Knob = nuke.Boolean_Knob('email', 'Send me mail when finished')
-        self.email_Knob.setTooltip('Sends an email for every finised/aborded task.')
-        self.addKnob(self.email_Knob)
+        # self.email_Knob = nuke.Boolean_Knob('email', 'Send me mail when finished')
+        # self.email_Knob.setTooltip('Sends an email for every finised/aborded task.')
+        # self.addKnob(self.email_Knob)
         self.separator5 = nuke.Text_Knob('')
         self.addKnob(self.separator5)
         self.proxy_Knob = nuke.Boolean_Knob('proxy', 'Render proxy')

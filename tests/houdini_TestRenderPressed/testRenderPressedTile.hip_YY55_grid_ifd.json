@@ -55,7 +55,7 @@
     "end_frame": 240, 
     "queue": "3d", 
     "output_picture": "/tmp/render/testRenderPressedTile.grid.0001.exr", 
-    "command": "{env} {exe} {command_arg} {scene_file}", 
+    "command": "{exe} {command_arg} {scene_file}", 
     "pre_render_script": "", 
     "job_on_hold": false, 
     "email_opt": "", 

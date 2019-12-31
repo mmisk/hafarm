@@ -17,7 +17,7 @@ cam1.renderable.set(True)
 
 render_globals = pm.PyNode('defaultRenderGlobals')
 render_globals.startFrame.set(int(start_frame))
-render_globals.endFrame.set(int(end_frame)-1)
+render_globals.endFrame.set(int(end_frame))
 
 
 print >> sys.stderr, '#'*20, render_globals.startFrame.get(), render_globals.endFrame.get()

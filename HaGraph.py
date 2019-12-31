@@ -12,6 +12,10 @@ from const import ConstantItemJSONEncoder
 from hafarm.HaConstant import HaConstant
 
 
+def random_hash_string():
+    return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(4))
+
+
 class HaGraphDependency(list):
     _all_dependencies = {}
     def __init__(self, key, data=[], parent=None):
@@ -65,6 +69,8 @@ class HaGraphItem(object):
 
     def add(self, *graph_items, **kwargs):
         for n in graph_items:
+            # TODO: 
+            # n.parms['job_name'] << { "jobname_hash": self.parms['job_name'].data()['jobname_hash'] }
             self.dependencies += [n.index]
 
 
@@ -109,7 +115,7 @@ class HaGraphItem(object):
     def get_jobname_hash(self):
         for x in self._external_hashes:
             return x
-        return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(4))
+        return random_hash_string()
 
 
     def generate_unique_job_name(self, name='no_name_job'):
@@ -132,7 +138,7 @@ class HaGraphItem(object):
 def expand(val, dict_):
     if isinstance(val, HaConstant):
         val.set_parms(dict_)
-        return os.path.expandvars(val._default)
+        return val._default
     return val
 
 
@@ -161,6 +167,12 @@ class HaGraph(object):
 
             self.graph_items += [ item ]
 
+    # def __str__(self):
+    #     ret = ""
+    #     for item in self.graph_items:
+    #         ret += str(item) + "\n"
+    #     return ret
+
         
     def render(self, **kwargs):
         '''
@@ -183,6 +195,7 @@ class HaGraph(object):
             _db['class_name'] = item.__class__.__name__
             _db['backend_name'] = 'HaGraph'
             _db['parms'] = dict([(n,expand(m, item.parms)) for n,m in item.parms.iteritems()])
+
             parms_file = kwargs.get( 'json_output_directory', os.path.expandvars(item.parms['script_path']) )
             parms_file = os.path.join(parms_file, str(item.parms['job_name'])) + '.json'
             json_files += [ parms_file ]
