@@ -251,6 +251,23 @@ class Slurm(RenderManager):
             return out
         return []
 
+    def get_taskids_by_name(self, job_name, split_tasks=True):
+        ''' Returns slurm's job id from the provided
+            jobname. It may return more than single job.
+        '''
+        job_name = str(job_name)
+        command = [SQUEUE_BIN, '--name=%s' % job_name, '-h' ,'-a' ,'-o', '%i' ]
+        out, err =subprocess.Popen(command, universal_newlines=True ,shell=False, \
+            stderr=subprocess.PIPE,stdout=subprocess.PIPE).communicate()
+        if out:
+            out = out.split()
+            # out = [line.strip() for line in out]
+            # if split_tasks:
+            #     assert "_" in out[0]
+            #     out = [x.split("_")[0] for x in out]
+            #     out = [int(x) for x in out]
+            return out
+        return []
  
     def get_jobname_by_id(self, _id):
         ''' Returns slurm's job_id by its job_name. 

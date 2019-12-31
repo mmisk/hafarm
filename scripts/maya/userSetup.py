@@ -1,4 +1,8 @@
+import os
 import pymel.core as pm
+
+# FIX: rez env maya -- maya
+os.environ['PATH'] = "%s:/usr/local/slurm/current/bin"%os.environ['PATH']
 
 
 
@@ -12,22 +16,11 @@ def render_on_farm(*args):
     farm.show()
 
 
-# def geo_on_farm(*args):
-#     from hafarm import Maya
-#     reload(Maya)
-#     from hafarm.Maya import MayaFarmGUI
-
-#     farm = MayaFarmGUI()
-#     farm.create_geometry_panel()
-#     farm.show()
-
-
 
 def _addMenu(ha):
     if pm.menu(ha, exists = True) == True:
         pm.menuItem(divider=True, dividerLabel="Hafarm", p=ha)
         pm.menuItem(label='Render on farm', p=ha, c=render_on_farm)
-        # pm.menuItem(label='Geometry on farm', p=ha, c=geo_on_farm)
 
 
 

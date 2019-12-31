@@ -6,7 +6,10 @@ import thread
 import socket
 from pxr import UsdUtils, Sdf, Tf
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-_, SERVER_IP, SERVER_PORT, scratch_usdx_directory, scratch_usdc_filepath, _ = sys.argv
+_, SERVER_IP, SERVER_PORT, scratch_file_basename, start_frame, end_frame, temp_sharedserver_infofile  = sys.argv
+
+output_directory = '/tmp/' + scratch_file_basename
+
 
 def findFreePort(hostname, port):
     """
@@ -32,19 +35,26 @@ def findFreePort(hostname, port):
                 raise
     raise RuntimeError("Could not find a free TCP in range {}-65535".format(port))
 
-# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# s.connect(("8.8.8.8", 80))
-# IP = s.getsockname()[0]
-# PORT = findFreePort(IP,30000)
+
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+IP = s.getsockname()[0]
+PORT = findFreePort(IP,30000)
+
+
+with open(temp_sharedserver_infofile, 'w') as fout:
+    fout.write("%s;%s"%(IP,PORT))
+
 try:
     proxy = xmlrpclib.ServerProxy("http://%s:%s/"%(SERVER_IP,SERVER_PORT))
 except:
     pass    
 
-# start_frame, end_frame = proxy.get_info()
 
 def shutdown_thread():
     server.shutdown()
+
+
 
 class HaStitch(object):
     _start_frame=0
@@ -55,51 +65,45 @@ class HaStitch(object):
     _counter = []
 
     def __init__(self, start_frame, end_frame):
-        self._out_file = '/tmp/koko.usd'
+        self._out_file = output_directory + os.sep +'out.usdc'
         self._outLayer = Sdf.Layer.CreateNew(self._out_file)
         self._counter = list(xrange(start_frame, end_frame))
 
-    def set_start_frame(self, val):
-        self._start_frame = val
-
-    def set_end_frame(self, val):
-        self._end_frame = val
-
-    def set_file_name(self, val):
-        self._file_name = val
 
     def add_frame_file(self, filepath, i):
+        print i, self._counter
         self._files_to_stitch[i] = Sdf.Layer.FindOrOpen(filepath)
+        print self._files_to_stitch[i] == None
         for n in self._files_to_stitch.keys():
+            j = min(self._counter)
+            print "##########", j
+            to_stitch = self._files_to_stitch.get(j)
             if to_stitch != None:
-                to_stitch = self._files_to_stitch.get(min(self._counter))
+                UsdUtils.StitchLayers(self._outLayer, to_stitch)
                 self._counter.remove(n)
-            # UsdUtils.StitchLayers(outLayer, to_stitch)
-        print len(self._counter), filepath
+                del self._files_to_stitch[n]
+
+        print len(self._counter), i, filepath
+        print 
         if self._counter == []:
             self._outLayer.Save()
-            print "try to exit"
+            print "[HA MESSAGE] DONE", self._out_file
             thread.start_new_thread(shutdown_thread, ())
 
         return True
 
 
-list_usd_files = glob.glob('%s/*.usd'%scratch_usdx_directory)
-list_usd_files.sort()
-print "#"*20, scratch_usdx_directory
-import subprocess
+server = SimpleXMLRPCServer((IP, PORT), allow_none=1, logRequests = False)
+sys.__stdout__.write( "Listening on port %s:%s...\n" % (IP,PORT) )
+server.register_instance(HaStitch(int(start_frame), int(end_frame)))
+server.serve_forever()
 
 
-cmd1 = 'usdstitch %s -o %s' % ( ' '.join(list_usd_files), scratch_usdc_filepath)
-print cmd1
-exit_code = subprocess.call(cmd1, shell=True, stderr=subprocess.STDOUT )
+# try:
+#     proxy.stitch_file("[ HA MESSAGE ] DONE USD: %s/out.usdc" % output_directory)
+# except Exception, e:
+#     pass
 
 
-try:
-    proxy.stitch_file("[ HA MESSAGE ] DONE USD: %s" % scratch_usdc_filepath)
-except Exception, e:
-    pass
-
-exit(exit_code)
 
 

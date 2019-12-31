@@ -501,7 +501,6 @@ class DenoiseBatchRender(HbatchWrapper):
 
 
 
-
 class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
@@ -559,6 +558,7 @@ class HoudiniMantra(HoudiniMantraExistingIfdWrapper):
 
     def get_output_picture(self):
         return self.hou_node.parm('vm_picture').eval()
+
 
 
 class HoudiniMantraWrapper(object):

@@ -69,6 +69,8 @@ class HaGraphItem(object):
 
     def add(self, *graph_items, **kwargs):
         for n in graph_items:
+            # TODO: 
+            # n.parms['job_name'] << { "jobname_hash": self.parms['job_name'].data()['jobname_hash'] }
             self.dependencies += [n.index]
 
 
