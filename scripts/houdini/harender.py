@@ -5,6 +5,7 @@ from hafarm import utils
 
 # Global overwrites
 HAFARM_DISABLE_VECTORIZE_EXPORT = "HAFARM_DISABLE_VECTORIZE_EXPORT" in os.environ
+SCRATCH = os.environ.get('HA_SCRATCH','/mnt/lustre/temp')
 
 def help():
     return 'harender: Houdinis hrender csh script replacement.\
@@ -133,7 +134,7 @@ def parseOptions():
     parser.add_option("", "--vectorize_export", dest='vectorize_export', action='store',  type="string", default="msk_*", help="Makes sure all deep rasters matching given pattern will be vector type.")
     parser.add_option("", "--save_scene", dest='save_scene', action='store',  type="string", default="", help="Saves modified version of a scene mostly for debugging purposes.")
     parser.add_option("", "--idle", dest='idle', action='store_true', default=False, help="Run the script, but don't render anything.")
-    parser.add_option("", "--scratch", dest='scratch', action='store', default="/SCRATCH/temp", help="Default location for storing temp render data per job.")
+    parser.add_option("", "--scratch", dest='scratch', action='store', default=SCRATCH, help="Default location for storing temp render data per job.")
     parser.add_option("", "--ifd_name", dest='ifd_name', action='store', default=None, help="Overwrites default IFD path.")
     
     (opts, args) = parser.parse_args(sys.argv[1:])
@@ -267,8 +268,8 @@ def main():
     hip_path, hip_file = os.path.split(scene_file)
     job_path = "_".join((job_current, job_group, job_name, hip_file))
 
-    if os.getenv("HAFARM_SCRATCH_DIR", None):
-        options.scratch = os.getenv("HAFARM_SCRATCH_DIR")
+    if os.getenv("HA_SCRATCH", None):
+        options.scratch = os.getenv("HA_SCRATCH")
     if not os.path.isdir(options.scratch):
         raise Exception("ERROR: Scratch file was set to %s, but it doesn't exist." % options.scratch)
         

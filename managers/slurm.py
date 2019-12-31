@@ -4,7 +4,7 @@ import os, sys
 import subprocess
 import json
 from jinja2 import Environment, FileSystemLoader
-
+import re
 import hafarm
 from hafarm import const
 from hafarm.manager import RenderManager 
@@ -91,9 +91,13 @@ class Slurm(RenderManager):
                 #command_arg = command_arg.replace(const.SCENE_FILE, scene_file)
                 self.parms['command_arg'].remove(const.SCENE_FILE)
         
-        for i, n in enumerate(self.parms['command_arg']):
-            if const.TASK_ID in n:
-                self.parms['command_arg'][i] = n.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
+        try:
+            for i, n in enumerate(self.parms['command_arg']):
+                if const.TASK_ID in n:
+                    self.parms['command_arg'][i] = n.replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID')
+        except Exception, e:
+            print self.parms['command_arg']
+            raise Exception(str(e))
 
         self.parms['output_picture'] = self.parms['output_picture'].replace(const.TASK_ID, '$SLURM_ARRAY_TASK_ID') 
 
@@ -104,12 +108,16 @@ class Slurm(RenderManager):
         self.parms['slurm_aftercorr'] = []
         self.parms['slurm_afterok'] = []
 
-        slurm_after_keyname = 'slurm_aftercorr' if self.parms['job_wait_dependency_entire'] == False else 'slurm_afterok'
+        slurm_after_keyname = 'slurm_aftercorr'
+        func_jobs = self.get_jobid_by_name
+        if self.parms['job_wait_dependency_entire'] == True:
+            slurm_after_keyname = 'slurm_afterok'
+            func_jobs = self.get_taskids_by_name
 
         if self.parms['hold_jid'] or self.parms['hold_jid_ad']:
             deps = self.parms['hold_jid'] + self.parms['hold_jid_ad']
             # get_jobids_by_name returns a list: [jobid, ...]
-            deps = [self.get_jobid_by_name(name) for name in deps]
+            deps = [func_jobs(name) for name in deps]
             # Flattern array of arrays:
             deps = list(set([str(item) for sublist in deps for item in sublist]))
             self.parms[slurm_after_keyname] = deps
@@ -176,12 +184,10 @@ class Slurm(RenderManager):
 
         if not command: 
             command = self.sbatch_command
-        # print command
-
+        # print >> sys.stderr, command
         # TODO: What we should do with output?
         try:
             result = subprocess.call(command, stdout=subprocess.PIPE)
-            # print ' '.join(command)
             return result
         except subprocess.CalledProcessError, why:
             return why
@@ -251,24 +257,24 @@ class Slurm(RenderManager):
             return out
         return []
 
+ 
     def get_taskids_by_name(self, job_name, split_tasks=True):
         ''' Returns slurm's job id from the provided
             jobname. It may return more than single job.
         '''
+
+        # return self.get_jobid_by_name(job_name, split_tasks)
         job_name = str(job_name)
-        command = [SQUEUE_BIN, '--name=%s' % job_name, '-h' ,'-a' ,'-o', '%i' ]
+        command = [SQUEUE_BIN, '--name=%s' % job_name, '-h' ,'-a' ,'-r', '-o', '%i' ]
         out, err =subprocess.Popen(command, universal_newlines=True ,shell=False, \
             stderr=subprocess.PIPE,stdout=subprocess.PIPE).communicate()
         if out:
             out = out.split()
-            # out = [line.strip() for line in out]
-            # if split_tasks:
-            #     assert "_" in out[0]
-            #     out = [x.split("_")[0] for x in out]
-            #     out = [int(x) for x in out]
+            out = [line.strip() for line in out]
             return out
         return []
- 
+
+
     def get_jobname_by_id(self, _id):
         ''' Returns slurm's job_id by its job_name. 
         '''

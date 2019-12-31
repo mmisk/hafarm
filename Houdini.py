@@ -133,46 +133,6 @@ def join_hafarms(*hafarm_nodes):
         return ret
 
 
-test_output_hscript_render="""1 [ ] /out/teapot       1 2 3 4 5 
-2 [ ] /out/box  1 2 3 4 5 
-3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
-4 [ ] /out/geometry1    1 2 3 4 5 
-5 [ 4 ] /out/alembic    1 2 3 4 5 
-6 [ 5 ] /out/grid       1 2 3 4 5 
-7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 """
-
-
-def get_hafarm_render_nodes(hafarm_node_path):
-    hafarm_node = hou.node(hafarm_node_path)
-    hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
-    ret = []
-    for item in hscript_out[0].strip('\n').split('\n'):
-        index, deps, path, frames  = re.match('(\\d+) \\[ ([0-9\\s]+)?\\] ([a-z/0-9A-Z_]+)\\s??([0-9\\s]+)', item).groups()
-        deps = [] if deps == None else deps.split(' ')
-        deps = [str(x) for x in deps if x != '']
-        houdini_dependencies[index] = deps
-        hou_node_type = hou.node(path).type().name()
-        ret += [ [hou_node_type, index, deps, path, [ hafarm_node ] ] ]
-
-    return ret
-
-
-
-def get_hafarm_list_deps(hafarm_node_path):
-    hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
-    hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
-    
-    for path in hscript_hafarm_deps[0].strip('\n').split('\n'):
-        hou_node_type = hou.node(path).type().name()
-        if hou_node_type == 'HaFarm':
-            nodes = get_hafarm_render_nodes(path)
-            for item in hou_nodes:
-                for _item in nodes:
-                    if _item[3] == item[3]:
-                        item[4] += _item[4]
-    return hou_nodes
-
-
 
 class SkipWrapper(HaGraphItem):
     def __init__(self, index, path, depends, **kwargs):
@@ -220,6 +180,14 @@ class HoudiniNodeWrapper(HaGraphItem):
                                     , "jobname_hash": self.get_jobname_hash()
                                     , "render_driver_type": self.hou_node_type
                                     , "render_driver_name": self.hou_node.name() }
+
+        deps = hou.hscript('opdepend -i -l 1 %s' % self.path)
+        for _path in [x for x in deps[0].split('\n') if x]:
+            n = hou.node(_path)
+            if n.type().name() == 'HaFarm':
+                if n.parm('wait_dependency').eval() == 1:
+                    self.parms['job_wait_dependency_entire'] = True
+
 
     def __iter__(self):
         x = type(self)(self.index, self.path, self.get_dependencies(), **self._kwargs)
@@ -687,11 +655,84 @@ class HoudiniGeometryWrapper(HbatchWrapper):
 
 
 
-class HoudiniComposite(HbatchWrapper):
+class MergeWrapper(HaGraphItem):
+    def __init__(self, index, path, depends, **kwargs):
+        self._kwargs = kwargs
+        self.name = path.rsplit('/', 1)[1]
+        super(MergeWrapper, self).__init__(index, depends, self.name, path, '')
+        
+        input_nodes = hou.hscript('opdepend -i %s' % path)[0] # ('/out/box\n/out/teapot\n', '')
+        
+        target_list = []
+        for x in [n for n in input_nodes.split('\n') if n]:
+            target_list += [str(x)]
+
+        self.hou_node = hou.node(target_list[0])
+        self.parms['target_list'] = target_list
+        self.index = index
+        self._make_proxy = kwargs.get('make_proxy', False)
+        self._make_movie = kwargs.get('make_movie', False)
+        self._debug_images = kwargs.get('debug_images', False)
+        self._resend_frames = kwargs.get('resend_frames', False)
+        self.path = path
+        self.hou_node_type = self.hou_node.type().name()
+        self.tags = '/houdini/%s' % self.hou_node_type
+        self.parms['output_picture'] = ''
+        self.parms['email_list']  = [utils.get_email_address()]
+        self.parms['ignore_check'] = kwargs.get('ignore_check', True)
+        self.parms['job_on_hold'] = path in kwargs['job_on_hold']
+        self.parms['priority'] = kwargs['priority']
+        self.parms['queue'] = kwargs['queue']
+        self.parms['group'] = kwargs['group']
+        self.parms['exclude_list'] = kwargs['exclude_list']
+        self.parms['req_start_time'] = kwargs['req_start_time']
+        self.parms['max_running_tasks'] = kwargs['max_running_tasks']
+        self._scene_file = str(hou.hipFile.name())
+        path, name = os.path.split(self._scene_file)
+        basename, ext = os.path.splitext(name)
+        self.parms['scene_file'] << { "scene_file_path": path
+                                        ,"scene_file_basename": basename
+                                        ,"scene_file_ext": ext }
+        self.parms['job_name'] << { "job_basename": name
+                                    , "jobname_hash": self.get_jobname_hash()
+                                    , "render_driver_type": self.hou_node_type
+                                    , "render_driver_name": self.hou_node.name() }
+
+        use_frame_list = kwargs.get('use_frame_list')
+
+        self.parms['exe'] = '$HFS/bin/hython'
+        self.parms['command_arg'] = [kwargs.get('command_arg')]
+        self.parms['req_license'] = 'hbatch_lic=1' 
+        self.parms['req_resources'] = 'procslots=%s' % kwargs.get('hbatch_slots')
+        self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
+        self.parms['start_frame'] = int(self.hou_node.parm('f1').eval())
+        self.parms['end_frame']  = int(self.hou_node.parm('f2').eval())
+        self.parms['frame_range_arg'] = ["-f %s %s -i %s", 'start_frame', 'end_frame', int(self.hou_node.parm('f3').eval())]
+        self.parms['req_memory'] = kwargs.get('hbatch_ram')
+        if use_frame_list:
+            self.parms['frame_list'] = kwargs.get('frame_list')
+            self.parms['step_frame'] = int(self.hou_node.parm('f2').eval())
+            self.parms['command_arg'] += ['-l %s' %  self.parms['frame_list']]
+        self.parms['command_arg'] += ['-d %s' % ",".join(self.parms['target_list'])]
+        command_arg = [ "--ignore_tiles" ]
+        if kwargs.get('ifd_path_is_default') == None:
+            command_arg += ["--ifd_path %s" % kwargs.get('ifd_path')]
+
+        for x in command_arg[::-1]:
+            self.parms['command_arg'].insert(1, x)
+
+        self.parms['command_arg'] += ["--merge_geometry"]
+
+
+    def __iter__(self):
+        yield self
+
+
+
+class HoudiniComposite(HoudiniGeometryWrapper):
     """docstring for HaMantraWrapper"""
     def __init__(self, index, path, depends, **kwargs):
         super(HoudiniComposite, self).__init__(index, path, depends, **kwargs)
-
 
     def get_output_picture(self):
         return self.hou_node.parm('copoutput').eval()
@@ -765,10 +806,95 @@ class HoudiniWrapper(type):
                         , 'Redshift_ROP': HoudiniRedshiftROPWrapper
                         , 'Redshift_IPR': SkipWrapper
                         , 'denoise' : DenoiseBatchRender
+                        , 'merge': MergeWrapper
                     }
 
         kwargs = join_hafarms(*hafarms)
         return hou_drivers[hou_node_type](index, path, houdini_dependencies, **kwargs)
+
+
+test_output_hscript_render="""1 [ ] /out/teapot       1 2 3 4 5 
+2 [ ] /out/box  1 2 3 4 5 
+3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
+4 [ ] /out/geometry1    1 2 3 4 5 
+5 [ 4 ] /out/alembic    1 2 3 4 5 
+6 [ 5 ] /out/grid       1 2 3 4 5 
+7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 """
+
+
+def get_hafarm_render_nodes(hafarm_node_path):
+    hafarm_node = hou.node(hafarm_node_path)
+    hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
+    ret = []
+    for item in hscript_out[0].strip('\n').split('\n'):
+        index, deps, path, frames  = re.match('(\\d+) \\[ ([0-9\\s]+)?\\] ([a-z/0-9A-Z_]+)\\s??([0-9\\s]+)', item).groups()
+        deps = [] if deps == None else deps.split(' ')
+        deps = [str(x) for x in deps if x != '']
+        houdini_dependencies[index] = deps
+        hou_node_type = hou.node(path).type().name()
+        ret += [ [hou_node_type, index, deps, path, [ hafarm_node ] ] ]
+
+    return ret
+
+
+def get_hafarm_list_deps(hafarm_node_path):
+    hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
+    hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
+    merges = []
+
+    last_index = int(hou_nodes[-1][1]) + 1
+    
+    for path in hscript_hafarm_deps[0].strip('\n').split('\n'):
+        hou_node_type = hou.node(path).type().name()
+        
+        deps = hou.hscript('opdepend -o -l 1 %s' % path) # ('/out/mantra1\n/out/alembic\n', '')
+        if deps:
+            for n in [x for x in deps[0].split('\n') if x]:
+                hou_deps_node = hou.node( n )
+                hou_deps_node_type = hou_deps_node.type().name()
+                if hou_deps_node_type == 'merge':
+                    x = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
+                    dd = []
+                    if x:
+                        for m in [ y for y in x[0].split('\n') if y ]:
+                            for item in hou_nodes:
+                                if m == item[3]:
+                                    dd += [ item[1] ]
+                    kk = [ hou_deps_node_type, str(last_index), dd, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
+                    if [b for b in merges if kk[3] == b[3]] == []:
+                        merges += [ kk ]
+                        last_index += 1
+
+        if hou_node_type == 'HaFarm':
+            nodes = get_hafarm_render_nodes(path)
+            for item in hou_nodes:
+                for _item in nodes:
+                    if _item[3] == item[3]:
+                        item[4] += _item[4]
+
+    for merge in merges:
+        for item in hou_nodes:
+            if item[2] == merge[2]:
+                item[2] = [ merge[1] ]
+                houdini_dependencies[ item[1] ] = [ merge[1] ]
+    
+    remove_indeces = []
+
+    for merge in merges:
+        for i in merge[2]:
+            remove_indeces += [i]
+            del houdini_dependencies[i]
+    
+    hou_nodes += merges
+
+    ret = []
+
+    for node in hou_nodes:
+        if not node[1] in remove_indeces:
+            ret += [ node ]
+
+    return ret
+
 
 
 
@@ -786,9 +912,7 @@ class HaContextHoudini(object):
 
         hou.hipFile.save()
 
-
         graph = HaGraph(graph_items_args=[])
-        
 
         for x in get_hafarm_list_deps(hafarm_node.path()):
             hou_node_type, index, deps, path, hafarms = x

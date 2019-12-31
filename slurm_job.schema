@@ -25,7 +25,7 @@
 #SBATCH -d aftercorr:{{ slurm_aftercorr|join(',') }}
 {%- endif %}
 {%- if slurm_afterok %}
-#SBATCH -d afterok:{{ slurm_afterok|join(',') }}
+#SBATCH -d afterok:{{ slurm_afterok|join(':') }}
 {%- endif %}
 {%- if email_list %}
 #SBATCH --mail-user={{ email_list|join(',') }}
@@ -44,6 +44,7 @@
 {%- endif %}
 
 export HA_MAYA_BATCH=1
+export MAYA_NO_STANDALONE_ATEXIT=1
 
 HAFARM_VERSION={{ env['REZ_HAFARM_VERSION'] }}
 LAST_FRAME={{ end_frame }}
