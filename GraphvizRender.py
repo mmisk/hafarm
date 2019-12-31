@@ -1,6 +1,5 @@
 # 2018.11.09 13:58:48 CET
 import tempfile
-from graphviz import Digraph
 
 
 
@@ -12,6 +11,8 @@ class GraphvizRender(object):
         self.hagraphitems_lst = hagraphitems_lst
 
     def render(self):
+        from graphviz import Digraph
+
         dot = Digraph(comment='The Round Table')
         dot.node_attr.update(fillcolor='darkolivegreen3', style='rounded,filled', shape='rectangle')
         i = 0

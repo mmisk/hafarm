@@ -26,6 +26,7 @@ import thread
 import socket
 import re
 
+SCRATCH = os.environ.get('HA_SCRATCH','/mnt/lustre/temp')
 pat = re.compile("_v([0-9]+)")
 
 def findFreePort(hostname, port):
@@ -84,7 +85,7 @@ def get_line(filename):
 def save_to_scratch():
     scene_name = pm.sceneName()
     basename = os.path.basename(scene_name)
-    scratch_file = tempfile.NamedTemporaryFile(suffix=basename, dir="/SCRATCH/temp",delete=False)
+    scratch_file = tempfile.NamedTemporaryFile(suffix=basename, dir=SCRATCH,delete=False)
     scratch_file.close()
     pm.renameFile(scratch_file.name)
     pm.saveFile()
@@ -433,7 +434,7 @@ class HaContextMaya(object):
         self.scene_name = name
         self._export_sets = {}
         self.basename, ext = os.path.splitext(name)
-        self.tempdir = tempfile.mkdtemp(prefix="_".join([os.getlogin(), self.scene_name, self._jobname_hash+"_"]),dir="/SCRATCH/temp")
+        self.tempdir = tempfile.mkdtemp(prefix="_".join([os.getlogin(), self.scene_name, self._jobname_hash+"_"]),dir=SCRATCH)
         os.chmod(self.tempdir, 0o0777)
         self.assembly_json = AssemblyJson()
         self.global_params = dict(
