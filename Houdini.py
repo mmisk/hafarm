@@ -28,6 +28,9 @@ houdini_nodes = {}
 
 
 def hda_denoise_ui_proccess(hafarm_node):
+    '''HDA Hafarm uses this function to delete/create denoise node for hafarm graph
+
+    '''
     hafarm_node.deleteItems( [ x for x in hafarm_node.children() if x.type().name() in ('denoise') ] )
     parm = hafarm_node.parm('denoise')
     value = str(parm.eval())
@@ -837,6 +840,11 @@ def get_hafarm_render_nodes(hafarm_node_path):
     return ret
 
 
+def clean_hscript_output(val):
+    return [x for x in val[0].split('\n') if x]
+
+
+
 def get_hafarm_list_deps(hafarm_node_path):
     hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
     hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
@@ -847,36 +855,32 @@ def get_hafarm_list_deps(hafarm_node_path):
     for path in hscript_hafarm_deps[0].strip('\n').split('\n'):
         hou_node_type = hou.node(path).type().name()
         
-        deps = hou.hscript('opdepend -o -l 1 %s' % path) # ('/out/mantra1\n/out/alembic\n', '')
-        if deps:
-            for n in [x for x in deps[0].split('\n') if x]:
-                hou_deps_node = hou.node( n )
+        out_dependencies = hou.hscript('opdepend -o -l 1 %s' % path) # ('/out/mantra1\n/out/alembic\n', '')
+        if out_dependencies:
+            for node_path in clean_hscript_output(out_dependencies):
+                hou_deps_node = hou.node( node_path )
                 hou_deps_node_type = hou_deps_node.type().name()
-                if hou_deps_node_type == 'merge':
-                    x = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
-                    dd = []
-                    if x:
-                        for m in [ y for y in x[0].split('\n') if y ]:
-                            for item in hou_nodes:
-                                if m == item[3]:
-                                    dd += [ item[1] ]
-                    kk = [ hou_deps_node_type, str(last_index), dd, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
-                    if [b for b in merges if kk[3] == b[3]] == []:
-                        merges += [ kk ]
-                        last_index += 1
-
-        if hou_node_type == 'HaFarm':
-            nodes = get_hafarm_render_nodes(path)
-            for item in hou_nodes:
-                for _item in nodes:
-                    if _item[3] == item[3]:
-                        item[4] += _item[4]
+                if hou_deps_node_type != 'merge':
+                    continue
+                in_dependencies = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
+                list_in_dependencies = []
+                if in_dependencies:
+                    for dep_node_path in clean_hscript_output(in_dependencies):
+                        for item in hou_nodes:
+                            if dep_node_path == item[3]:
+                                list_in_dependencies += [ item[1] ]
+                merge_item = [ hou_deps_node_type, str(last_index), list_in_dependencies, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
+                houdini_dependencies[ str(last_index) ] = []
+                if [x for x in merges if merge_item[3] == x[3]] == []:
+                    merges += [ merge_item ]
+                    last_index += 1
 
     for merge in merges:
         for item in hou_nodes:
-            if item[2] == merge[2]:
-                item[2] = [ merge[1] ]
+            if item[2] == merge[2]: # item.deps == merge.deps
+                item[2] = [ merge[1] ] # item.deps = [ merge.index ]
                 houdini_dependencies[ item[1] ] = [ merge[1] ]
+
     
     remove_indeces = []
 
@@ -890,11 +894,11 @@ def get_hafarm_list_deps(hafarm_node_path):
     ret = []
 
     for node in hou_nodes:
-        if not node[1] in remove_indeces:
-            ret += [ node ]
+        if node[1] in remove_indeces:
+            continue
+        ret += [ node ]
 
     return ret
-
 
 
 
