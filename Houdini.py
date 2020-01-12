@@ -114,7 +114,7 @@ def join_hafarms(*hafarm_nodes):
                     , step_frame = hafarm_node.parm('step_frame').eval()
                     , ifd_path = hafarm_node.parm("ifd_path").eval()
                     , frames = frames
-                    , exclude_list = hafarm_node.parm('exclude_list').eval() if hafarm_node.parm('exclude_list') != None else []
+                    , exclude_list = [ x for x in hafarm_node.parm('exclude_list').eval().split(',') if x ] if hafarm_node.parm('exclude_list') != None else []
                     , use_frame_list = use_frame_list
                     , make_proxy = bool(hafarm_node.parm("make_proxy").eval())
                     , make_movie = bool(hafarm_node.parm("make_movie").eval())
@@ -698,7 +698,7 @@ class MergeWrapper(HaGraphItem):
                                         ,"scene_file_ext": ext }
         self.parms['job_name'] << { "job_basename": name
                                     , "jobname_hash": self.get_jobname_hash()
-                                    , "render_driver_type": self.hou_node_type
+                                    , "render_driver_type": 'merge'
                                     , "render_driver_name": self.hou_node.name() }
 
         use_frame_list = kwargs.get('use_frame_list')
@@ -851,12 +851,8 @@ def clean_hscript_output(val):
     return [x for x in val[0].split('\n') if x]
 
 
-
-def get_hafarm_list_deps(hafarm_node_path):
-    hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
-    hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
+def _pool_merge_nodes(hou_nodes, hscript_hafarm_deps, hafarm_node_path):
     merges = []
-
     last_index = int(hou_nodes[-1][1]) + 1
     
     for path in hscript_hafarm_deps[0].strip('\n').split('\n'):
@@ -894,7 +890,17 @@ def get_hafarm_list_deps(hafarm_node_path):
         for i in merge[2]:
             remove_indeces += [i]
             del houdini_dependencies[i]
+
+    return remove_indeces, merges
+
+
+
+def get_hafarm_list_deps(hafarm_node_path):
+    hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
+    hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
     
+
+    remove_indeces, merges = _pool_merge_nodes(hou_nodes, hscript_hafarm_deps, hafarm_node_path)
     hou_nodes += merges
 
     ret = []
