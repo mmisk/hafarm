@@ -816,16 +816,23 @@ class HoudiniWrapper(type):
         return hou_drivers[hou_node_type](index, path, houdini_dependencies, **kwargs)
 
 
-test_output_hscript_render="""1 [ ] /out/teapot       1 2 3 4 5 
-2 [ ] /out/box  1 2 3 4 5 
-3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
-4 [ ] /out/geometry1    1 2 3 4 5 
-5 [ 4 ] /out/alembic    1 2 3 4 5 
-6 [ 5 ] /out/grid       1 2 3 4 5 
-7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 """
+
 
 
 def get_hafarm_render_nodes(hafarm_node_path):
+    """ Get output from "render -pF /out/HaFarm2"
+        1 [ ] /out/teapot       1 2 3 4 5 
+        2 [ ] /out/box  1 2 3 4 5 
+        3 [ 1 2 ] /out/box_teapot_v077  1 2 3 4 5 
+        4 [ ] /out/geometry1    1 2 3 4 5 
+        5 [ 4 ] /out/alembic    1 2 3 4 5 
+        6 [ 5 ] /out/grid       1 2 3 4 5 
+        7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 
+        And returned list of lists 
+        [ ['alembic','5',    ['4'],         '/out/alembic ' , [ <instance of Hafarm node>, ] ], ... ]
+            ^^^^^^    ^^      ^^^             ^^^^^^^^^^        ^^^^^^^^^^^
+            type     index    dependencies       path              
+    """
     hafarm_node = hou.node(hafarm_node_path)
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
     ret = []
@@ -879,8 +886,7 @@ def get_hafarm_list_deps(hafarm_node_path):
         for item in hou_nodes:
             if item[2] == merge[2]: # item.deps == merge.deps
                 item[2] = [ merge[1] ] # item.deps = [ merge.index ]
-                houdini_dependencies[ item[1] ] = [ merge[1] ]
-
+                houdini_dependencies[ item[1] ] = [ merge[1] ] # replace in houdini_dependencies
     
     remove_indeces = []
 
