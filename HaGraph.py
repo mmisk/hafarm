@@ -57,6 +57,7 @@ class HaGraphDependency(list):
 
 class HaGraphItem(object):
     _external_hashes = (lambda: [(yield x) for x in [] ])()
+    _random_hash_string = ''
 
     def __init__(self, index, dependencies, name, path, tags, **kwargs):
         self.index = index
@@ -111,11 +112,14 @@ class HaGraphItem(object):
 
         return {'copy_scene_file': new_scene_file, 'error': error}
 
+    def set_jobname_hash(self):
+        self._random_hash_string = random_hash_string()
+
 
     def get_jobname_hash(self):
         for x in self._external_hashes:
             return x
-        return random_hash_string()
+        return self._random_hash_string # random_hash_string()
 
 
     def generate_unique_job_name(self, name='no_name_job'):
@@ -146,13 +150,9 @@ class HaGraph(object):
     def __init__(self, graph_items_args=[]):
         self.RenderCls = None
         self.graph_items = graph_items_args
+        if graph_items_args == []:
+            HaGraphItem._random_hash_string = random_hash_string()
         self.global_parms = HaFarmParms(initilize=True)
-
-
-    # def tree(self):
-    #     ret = {}
-
-    #     return ret
 
 
     def set_render(self, render_cls):
