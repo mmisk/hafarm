@@ -18,10 +18,16 @@ class GraphvizRender(object):
         i = 0
         for k, n in self.hagraphitems_lst.iteritems():
             kw = {}
+            if n.parms['job_wait_dependency_entire']:
+                kw = {'fillcolor':'chocolate2:yellow'}
+
+            if n.parms['job_name'].data()['render_driver_type'] == 'merge':
+                kw = {'fillcolor':'darkolivegreen3:blue'}
+
             dot.node(str(k), ('%s\n%s\n%s\n%s' % (n.parms['job_name'],
-             n.tags,
-             n.name,
-             n.path)), **kw)
+                                                     n.tags,
+                                                     n.name,
+                                                     n.path)), **kw)
             i += 1
 
         for k, n in self.hagraphitems_lst.iteritems():

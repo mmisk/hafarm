@@ -817,9 +817,7 @@ class HoudiniWrapper(type):
 
 
 
-
-
-def get_hafarm_render_nodes(hafarm_node_path):
+def _get_hafarm_render_nodes(hafarm_node_path):
     """ Get output from "render -pF /out/HaFarm2"
         1 [ ] /out/teapot       1 2 3 4 5 
         2 [ ] /out/box  1 2 3 4 5 
@@ -828,10 +826,11 @@ def get_hafarm_render_nodes(hafarm_node_path):
         5 [ 4 ] /out/alembic    1 2 3 4 5 
         6 [ 5 ] /out/grid       1 2 3 4 5 
         7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 
+        
         And returned list of lists 
         [ ['alembic','5',    ['4'],         '/out/alembic ' , [ <instance of Hafarm node>, ] ], ... ]
             ^^^^^^    ^^      ^^^             ^^^^^^^^^^        ^^^^^^^^^^^
-            type     index    dependencies       path              
+            type     index  dependencies         path              
     """
     hafarm_node = hou.node(hafarm_node_path)
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
@@ -847,36 +846,51 @@ def get_hafarm_render_nodes(hafarm_node_path):
     return ret
 
 
-def clean_hscript_output(val):
+
+def _clean_hscript_output(val):
+    """ val ('/out/mantra1\n/out/alembic\n', '')
+        return ['/out/mantra1', '/out/alembic']
+    """
     return [x for x in val[0].split('\n') if x]
 
 
-def _pool_merge_nodes(hou_nodes, hscript_hafarm_deps, hafarm_node_path):
+
+def _pool_merge_nodes(hou_nodes, hafarm_node_path):
+    """ This function finds merge nodes and injects merge nodes
+        into node graph list, makes changes in dependencies
+    """
     merges = []
     last_index = int(hou_nodes[-1][1]) + 1
-    
-    for path in hscript_hafarm_deps[0].strip('\n').split('\n'):
-        hou_node_type = hou.node(path).type().name()
-        
+
+    # go through all hafarm node tree 
+    input_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
+    for path in _clean_hscript_output(input_hafarm_deps): 
         out_dependencies = hou.hscript('opdepend -o -l 1 %s' % path) # ('/out/mantra1\n/out/alembic\n', '')
-        if out_dependencies:
-            for node_path in clean_hscript_output(out_dependencies):
-                hou_deps_node = hou.node( node_path )
-                hou_deps_node_type = hou_deps_node.type().name()
-                if hou_deps_node_type != 'merge':
-                    continue
-                in_dependencies = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
-                list_in_dependencies = []
-                if in_dependencies:
-                    for dep_node_path in clean_hscript_output(in_dependencies):
-                        for item in hou_nodes:
-                            if dep_node_path == item[3]:
-                                list_in_dependencies += [ item[1] ]
-                merge_item = [ hou_deps_node_type, str(last_index), list_in_dependencies, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
-                houdini_dependencies[ str(last_index) ] = []
-                if [x for x in merges if merge_item[3] == x[3]] == []:
-                    merges += [ merge_item ]
-                    last_index += 1
+        if not out_dependencies:
+            continue
+        
+        for node_path in _clean_hscript_output(out_dependencies):
+            hou_deps_node = hou.node( node_path )
+            
+            hou_deps_node_type = hou_deps_node.type().name()
+            if hou_deps_node_type != 'merge':
+                continue
+            
+            in_dependencies = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
+            if in_dependencies == []:
+                continue
+            
+            list_in_dependencies = []
+            for dep_node_path in _clean_hscript_output(in_dependencies):
+                for item in hou_nodes:
+                    if dep_node_path == item[3]:
+                        list_in_dependencies += [ item[1] ]
+            
+            merge_item = [ hou_deps_node_type, str(last_index), list_in_dependencies, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
+            houdini_dependencies[ str(last_index) ] = []
+            if [x for x in merges if merge_item[3] == x[3]] == []:
+                merges += [ merge_item ]
+                last_index += 1
 
     for merge in merges:
         for item in hou_nodes:
@@ -896,11 +910,9 @@ def _pool_merge_nodes(hou_nodes, hscript_hafarm_deps, hafarm_node_path):
 
 
 def get_hafarm_list_deps(hafarm_node_path):
-    hou_nodes = get_hafarm_render_nodes(hafarm_node_path)
-    hscript_hafarm_deps = hou.hscript('opdepend -i %s' % hafarm_node_path )
-    
+    hou_nodes = _get_hafarm_render_nodes(hafarm_node_path)
 
-    remove_indeces, merges = _pool_merge_nodes(hou_nodes, hscript_hafarm_deps, hafarm_node_path)
+    remove_indeces, merges = _pool_merge_nodes(hou_nodes, hafarm_node_path)
     hou_nodes += merges
 
     ret = []
