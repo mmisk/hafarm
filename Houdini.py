@@ -79,19 +79,19 @@ def join_hafarms(*hafarm_nodes):
             render_from_ifd = bool(hafarm_node.parm("render_from_ifd").eval())
 
             if render_from_ifd == True:
-                ifds  = self.hafarm_node.parm("ifd_files").eval()
-                real_ifds, name_prefix, scene_file = self.get_ifd_files()
+                ifds  = hafarm_node.parm("ifd_files").eval()
+                real_ifds, name_prefix, scene_file = get_ifd_files()
                 if real_ifds == []:
                     render_from_ifd = False
                 else:
                     if use_frame_list == False:
-                        frames = xrange(self.hafarm_node.parm("ifd_range1").eval(), self.hafarm_node.parm("ifd_range2").eval())
+                        frames = xrange(hafarm_node.parm("ifd_range1").eval(), hafarm_node.parm("ifd_range2").eval())
 
                 params_for_node_wrappers = dict(  output_picture = utils.get_ray_image_from_ifd(real_ifds[0])
                                                 , scene_file = scene_file
                                                 , name_prefix = name_prefix
-                                                , start_frame = self.hafarm_node.parm("ifd_range1").eval()
-                                                , end_frame = self.hafarm_node.parm("ifd_range2").eval()
+                                                , start_frame = hafarm_node.parm("ifd_range1").eval()
+                                                , end_frame = hafarm_node.parm("ifd_range2").eval()
                                             )
 
             more = bool(hafarm_node.parm('more').eval())
@@ -828,9 +828,9 @@ def _get_hafarm_render_nodes(hafarm_node_path):
         7 [ 3 6 ] /out/comp_v004        1 2 3 4 5 
         
         And returned list of lists 
-        [ ['alembic','5',    ['4'],         '/out/alembic ' , [ <instance of Hafarm node>, ] ], ... ]
-            ^^^^^^    ^^      ^^^             ^^^^^^^^^^        ^^^^^^^^^^^
-            type     index  dependencies         path              
+        [ ['alembic','5',    ['4'],     '/out/alembic ' , [ <instance of Hafarm node>, ] ], ... ]
+            ^^^^^^    ^^      ^^^         ^^^^^^^^^^        ^^^^^^^^^^^
+            type     index  dependencies    path              
     """
     hafarm_node = hou.node(hafarm_node_path)
     hscript_out = hou.hscript('render -pF %s' % hafarm_node_path )
@@ -868,25 +868,25 @@ def _pool_merge_nodes(hou_nodes, hafarm_node_path):
         out_dependencies = hou.hscript('opdepend -o -l 1 %s' % path) # ('/out/mantra1\n/out/alembic\n', '')
         if not out_dependencies:
             continue
-        
+
         for node_path in _clean_hscript_output(out_dependencies):
             hou_deps_node = hou.node( node_path )
-            
+
             hou_deps_node_type = hou_deps_node.type().name()
             if hou_deps_node_type != 'merge':
                 continue
-            
+
             in_dependencies = hou.hscript('opdepend -i %s' % hou_deps_node.path()) # ('/out/box\n/out/teapot\n', '')
             if in_dependencies == []:
                 continue
-            
+
             list_in_dependencies = []
             for dep_node_path in _clean_hscript_output(in_dependencies):
                 for item in hou_nodes:
                     if dep_node_path == item[3]:
                         list_in_dependencies += [ item[1] ]
-            
-            merge_item = [ hou_deps_node_type, str(last_index), list_in_dependencies, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ] 
+
+            merge_item = [ hou_deps_node_type, str(last_index), list_in_dependencies, hou_deps_node.path(), [ hou.node(hafarm_node_path) ] ]
             houdini_dependencies[ str(last_index) ] = []
             if [x for x in merges if merge_item[3] == x[3]] == []:
                 merges += [ merge_item ]
