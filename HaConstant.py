@@ -1,6 +1,8 @@
 import os
 
 class HaConstant(object):
+    """ This class gives possibility to edit item by chunks
+    """
     def __init__(self, default):
         self._parms = None
         self._default = default
