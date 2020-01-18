@@ -56,6 +56,9 @@ class HaGraphDependency(list):
 
 
 class HaGraphItem(object):
+    """ Item for gather params from sowftwares
+    """
+    # This for testing sake
     _external_hashes = (lambda: [(yield x) for x in [] ])()
     _random_hash_string = ''
 
@@ -70,8 +73,6 @@ class HaGraphItem(object):
 
     def add(self, *graph_items, **kwargs):
         for n in graph_items:
-            # TODO: 
-            # n.parms['job_name'] << { "jobname_hash": self.parms['job_name'].data()['jobname_hash'] }
             self.dependencies += [n.index]
 
 
@@ -140,6 +141,8 @@ class HaGraphItem(object):
 
 
 def expand(val, dict_):
+    """ Get data from HaConstant
+    """
     if isinstance(val, HaConstant):
         val.set_parms(dict_)
         return val._default
@@ -147,6 +150,8 @@ def expand(val, dict_):
 
 
 class HaGraph(object):
+    """ Class do convert parms to json files
+    """
     def __init__(self, graph_items_args=[]):
         self.RenderCls = None
         self.graph_items = graph_items_args
@@ -160,6 +165,8 @@ class HaGraph(object):
 
 
     def add_node(self, *graph_items):
+        """ Append HaGraphItem
+        """
         for item in graph_items:
             for n, m in self.global_parms.iteritems():
                 if not n in item.parms:
@@ -167,18 +174,14 @@ class HaGraph(object):
 
             self.graph_items += [ item ]
 
-    # def __str__(self):
-    #     ret = ""
-    #     for item in self.graph_items:
-    #         ret += str(item) + "\n"
-    #     return ret
-
         
     def render(self, **kwargs):
         '''
             Kwargs:
-                json_output_directory
-                copy_scene_file
+                json_output_directory   Directory by default ..render/sungrid/jobScript
+                copy_scene_file:        Copy scene action to ..render/sungrid/jobScript
+            Return: 
+                list of json files
         '''
         graph_items = {}
         for x in self.graph_items:
