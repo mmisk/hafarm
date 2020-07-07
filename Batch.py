@@ -1,11 +1,15 @@
 import os, sys
 import utils
 import const
+import fileseq
 from uuid import uuid4
 from HaGraph import HaGraphItem
 from HaGraph import HaGraphDependency
 
+sys.path.append(os.path.abspath('/PROD/dev/sandbox/user/mmiskiewicz/tmp/HaSG'))
+import HaSG
 
+sys.dont_write_bytecode = True
 
 class BatchBase(HaGraphItem):
     def __init__(self, name, tags, *args, **kwargs):
@@ -33,21 +37,101 @@ class BatchBase(HaGraphItem):
 
 
 
-class BatchMp4(BatchBase):
-    def __init__(self, filename, *args, **kwargs):
+# class BatchMp4(BatchBase):
+#     def __init__(self, filename, *args, **kwargs):
+#         name = 'ffmpeg'
+#         tags = '/hafarm/ffmpeg'
+#         super(BatchMp4, self).__init__(name, tags, *args, **kwargs)
+#         scene_file_path, _, _, _ = utils.padding(filename, 'nuke')
+#         base, file = os.path.split(scene_file_path)
+#         file, _ = os.path.splitext(file)
+#         inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
+#         outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
+#         self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+#         self.parms['exe'] = 'ffmpeg'
+#         self.parms['job_name'] << { 'render_driver_type': 'mp4' }
+
+class BatchPreview(BatchBase):
+# TO DO move making previews to diffrenet module
+
+    def __init__(self, parent_item, *args, **kwargs):
         name = 'ffmpeg'
         tags = '/hafarm/ffmpeg'
-        super(BatchMp4, self).__init__(name, tags, *args, **kwargs)
-        scene_file_path, _, _, _ = utils.padding(filename, 'nuke')
-        base, file = os.path.split(scene_file_path)
-        file, _ = os.path.splitext(file)
-        inputfile = os.path.join(base, const.PROXY_POSTFIX, file + '.jpg')
-        outputfile = os.path.join(base, utils.padding(filename)[0] + 'mp4')
-        self.parms['command_arg'] = ['-y -r 25 -i %s -an -vcodec libx264 -vpre slow -crf 26 -threads 1 %s' % (inputfile, outputfile)]
+
+        super(BatchPreview, self).__init__(name, tags, *args, **kwargs)
+
+        self.add(parent_item)
+
+        #process input
+        if 'image_sequence' not in kwargs.keys():
+            inputfile = parent_item.parms['output_picture']
+            inputfile_list = parent_item.parms['output_picture'].split(".")
+            inputfile_list[-2] = "%04d"
+            inputfile = ".".join(inputfile_list)
+        else:
+            inputfile = kwargs['image_sequence']
+
+
+        fps = int(kwargs['fps'])
+
+        self.parms['output_picture'] = str(inputfile.split(".")[0]) + ".mp4"
+
+        if 'start_frame' not in kwargs.keys():
+            self.parms['start_frame'] = 1001
+        else:
+            self.parms['start_frame'] = kwargs['start_frame']
+
+
+        # self.parms['end_frame'] = self.parms['start_frame']
+        self.parms['scene_file'] = parent_item.parms['scene_file']
+        self.parms['command'] << "rez env {exe} -- {exe} {command_arg}"
+        self.parms['command_arg'] = ['-y -r %d -start_number %d -i %s %s' % (fps ,self.parms['start_frame'], inputfile, self.parms['output_picture'])]
         self.parms['exe'] = 'ffmpeg'
-        self.parms['job_name'] << { 'render_driver_type': 'mp4' }
+
+        self.parms['job_name'] << { 'job_basename' : self.name + "_" + parent_item.parms['job_name'].data()['job_basename'], 'jobname_hash' : self.get_jobname_hash(), 'render_driver_name': 'preview' }
+
+class BatchSG(BatchBase):
+# TO DO move making previews to diffrenet module
+
+    def __init__(self, parent_item, *args, **kwargs):
+        name = 'Shotgun'
+        tags = '/hafarm/Shotgun'
+
+        super(BatchSG, self).__init__(name, tags, *args, **kwargs)
+
+        self.add(parent_item)
 
 
+        #process input
+        inputfile = parent_item.parms['output_picture']
+
+        code = os.path.basename(inputfile).split(".")[0]
+
+        frames = kwargs['image_sequence']
+        
+        if 'start_frame' not in kwargs.keys():
+            self.parms['start_frame'] = 1001
+        else:
+            self.parms['start_frame'] = kwargs['start_frame']
+
+
+        self.parms['end_frame'] = self.parms['start_frame']
+        self.parms['scene_file'] = parent_item.parms['scene_file']
+
+        self.parms['command'] << "{exe} {command_arg}"
+
+        self.parms['command_arg'] = [   '-u %s' % self.parms['user'] 
+                                        ,'-p %s' % self.parms['job_current'] 
+                                        ,'-s %s' % self.parms['job_asset_name'] 
+                                        ,'-d %s' % kwargs['sg_description']
+                                        ,'-c %s' % code 
+                                        ,'-m %s' % inputfile
+                                        ,'-f %s' % frames
+                                    ]
+
+        self.parms['exe'] = 'python /PROD/dev/sandbox/user/mmiskiewicz/tmp/HaSG/HaSG_commandline.py'
+
+        self.parms['job_name'] << { 'job_basename' : self.name + "_" + parent_item.parms['job_name'].data()['job_basename'], 'jobname_hash' : self.get_jobname_hash()}
 
 class BatchDebug(BatchBase):
     def __init__(self, filename, *args, **kwargs):

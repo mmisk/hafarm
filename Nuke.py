@@ -1,4 +1,4 @@
-import os
+import os, sys
 import nukescripts, nuke
 
 class FakePythonPanel(object):
@@ -14,6 +14,14 @@ from HaGraph import HaGraphItem
 from hafarm import SlurmRender
 
 
+## delete this 
+import Batch
+reload(Batch)
+
+from Batch import BatchPreview
+from Batch import BatchSG
+
+sys.dont_write_bytecode = True
 
 class HaContextNuke(object):
     def _get_graph(self, **kwargs):
@@ -36,7 +44,24 @@ class HaContextNuke(object):
         if not 'output_picture' in kwargs:
             kwargs['output_picture'] = str(nuke.root().node(kwargs['target_list'][0]).knob('file').getEvaluatedValue())
 
-        graph.add_node(NukeWrapper(**kwargs))
+
+        print kwargs
+        
+
+        nuke_render = NukeWrapper(**kwargs)
+        graph.add_node(nuke_render)
+
+        if kwargs['make_preview']:
+            preview_render = BatchPreview(nuke_render,**kwargs)
+
+            graph.add_node(preview_render)
+
+        if kwargs['sg_submit']:
+            sg_submit = BatchSG(preview_render,**kwargs)
+
+            graph.add_node(sg_submit)
+        
+
         return graph
 
 
@@ -87,6 +112,7 @@ class NukeWrapper(HaGraphItem):
         self.parms['job_on_hold'] = kwargs['job_on_hold']
         self.parms['priority'] = kwargs['priority']
 
+
         if 'email_list' in kwargs:
             self.parms['email_list'] = [utils.get_email_address()]
             self.parms['email_opt'] = 'eas'
@@ -124,6 +150,11 @@ class NukeFarmGUI(nukescripts.PythonPanel):
             ,output_picture = str(write_node.knob('file').getEvaluatedValue())
             ,job_on_hold = bool(self.hold_Knob.value())
             ,priority = int(self.priorityKnob.value())
+            ,make_preview = bool(self.make_preview_Knob.value())
+            ,fps =  nuke.root()["fps"].getValue()
+            ,image_sequence = write_node.knob('file').getValue()
+            ,sg_submit = self.sg_submit_Knob.value()
+            ,sg_description = self.sg_description_Knob.value()
         )
         
         if self.requestSlots_Knob.value():
@@ -132,7 +163,10 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         # if self.email_Knob.value():
         #     global_params.update( {'email_list': [utils.get_email_address()]} )
         
-        graph = self._ctx._get_graph(**global_params)
+
+        graph = self._ctx._get_graph(**global_params)      
+
+
         graph.set_render(SlurmRender.SlurmRender)
         graph.render()
         return True
@@ -193,10 +227,27 @@ class NukeFarmGUI(nukescripts.PythonPanel):
         self.addKnob(self.separator4)
         self.hold_Knob = nuke.Boolean_Knob('hold', 'Submit job on hold')
         self.hold_Knob.setTooltip("Job won't start unless manually unhold in qmon.")
+        self.hold_Knob.setFlag(0x1000) # start new line flag
         self.addKnob(self.hold_Knob)
+
+        self.make_preview_Knob = nuke.Boolean_Knob('make_preview', 'Make preview')
+        self.make_preview_Knob.setValue(1)
+        self.make_preview_Knob.setFlag(0x1000) # start new line flag
+        self.addKnob(self.make_preview_Knob)
+
+        self.sg_submit_Knob = nuke.Boolean_Knob('sg_submit', 'Submit to Shotgun')
+        self.sg_submit_Knob.setValue(1)
+        self.sg_submit_Knob.setFlag(0x1000) # start new line flag
+        self.addKnob(self.sg_submit_Knob)
+
+        self.sg_description_Knob = nuke.Multiline_Eval_String_Knob('sg_descrition', 'Shotgun version description')
+        self.sg_description_Knob.setFlag(0x1000) # start new line flag
+        self.addKnob(self.sg_description_Knob)
+
         # self.email_Knob = nuke.Boolean_Knob('email', 'Send me mail when finished')
         # self.email_Knob.setTooltip('Sends an email for every finised/aborded task.')
         # self.addKnob(self.email_Knob)
+
         self.separator5 = nuke.Text_Knob('')
         self.addKnob(self.separator5)
         self.proxy_Knob = nuke.Boolean_Knob('proxy', 'Render proxy')
@@ -207,3 +258,10 @@ class NukeFarmGUI(nukescripts.PythonPanel):
     def knobChanged(self,knob):
         if nuke.thisKnob().name() == 'proxy':
             nuke.root().knob('proxy').setValue(knob.value())
+
+        if nuke.thisKnob().name() == 'sg_submit':
+            self.sg_description_Knob.setEnabled(bool(nuke.thisKnob().getValue()))
+
+        if nuke.thisKnob().name() == 'make_preview':
+            self.sg_submit_Knob.setEnabled(bool(nuke.thisKnob().getValue()))
+            self.sg_description_Knob.setEnabled(bool(nuke.thisKnob().getValue()))
